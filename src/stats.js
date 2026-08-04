@@ -6,7 +6,7 @@ export function sparkline (values) {
   return values.map(v => SPARKS[Math.min(7, Math.floor((v / max) * 8))]).join('')
 }
 
-const CORRECTIVE = new Set(['correction', 'fix_request'])
+const CORRECTIVE = new Set(['correction', 'fix_request', 'challenge'])
 
 // Baseline normalization is the NuPIC anomaly-likelihood idea shrunk to fit:
 // a session is only remarkable relative to this user's own distribution of
@@ -27,13 +27,14 @@ export function aggregate (records) {
   let maxChain = 0
 
   for (const [project, sessions] of byProject) {
-    const p = { project, sessions: sessions.size, prompts: 0, corrections: 0, fixRequests: 0, accepts: 0, sessionRates: [] }
+    const p = { project, sessions: sessions.size, prompts: 0, corrections: 0, fixRequests: 0, challenges: 0, accepts: 0, sessionRates: [] }
     for (const recs of sessions.values()) {
       p.prompts += recs.length
       let corrective = 0
       for (const r of recs) {
         if (r.label === 'correction') { p.corrections++; corrective++ }
         if (r.label === 'fix_request') { p.fixRequests++; corrective++ }
+        if (r.label === 'challenge') { p.challenges++; corrective++ }
         if (r.label === 'accept') p.accepts++
         if (r.cue) cueCounts.set(r.cue, (cueCounts.get(r.cue) ?? 0) + 1)
         if (r.chain > maxChain) maxChain = r.chain
@@ -42,7 +43,8 @@ export function aggregate (records) {
       p.sessionRates.push(rate)
       allRates.push(rate)
     }
-    p.correctionRate = p.prompts ? (p.corrections + p.fixRequests) / p.prompts : 0
+    p.corrective = p.corrections + p.fixRequests + p.challenges
+    p.correctionRate = p.prompts ? p.corrective / p.prompts : 0
     projects.push(p)
   }
 
@@ -59,7 +61,7 @@ export function aggregate (records) {
     projects,
     totals: {
       prompts: projects.reduce((a, p) => a + p.prompts, 0),
-      corrective: projects.reduce((a, p) => a + p.corrections + p.fixRequests, 0),
+      corrective: projects.reduce((a, p) => a + p.corrective, 0),
       accepts: projects.reduce((a, p) => a + p.accepts, 0),
       sessions: projects.reduce((a, p) => a + p.sessions, 0)
     },
@@ -80,7 +82,7 @@ export function render (agg) {
   for (const p of agg.projects) {
     if (!p.prompts) continue
     lines.push(`${p.project}`)
-    lines.push(`  sessions ${p.sessions}  prompts ${p.prompts}  corrective ${p.corrections + p.fixRequests} (${(p.correctionRate * 100).toFixed(1)}%)  accepts ${p.accepts}`)
+    lines.push(`  sessions ${p.sessions}  prompts ${p.prompts}  corrective ${p.corrective} (${(p.correctionRate * 100).toFixed(1)}%: ${p.corrections}c ${p.fixRequests}f ${p.challenges}q)  accepts ${p.accepts}`)
     lines.push(`  per-session rate ${sparkline(p.sessionRates)}`)
   }
   if (agg.topCues.length) {

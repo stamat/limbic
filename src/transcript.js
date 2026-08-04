@@ -10,6 +10,17 @@ import { join, basename } from 'node:path'
 // classifier scores text the user never typed.
 const COMMAND_MARKERS = ['<command-name>', '<local-command-stdout>', '<local-command-caveat>']
 
+// IDE context rides inside the prompt text itself: selection and opened-file
+// blocks contain arbitrary code and prose the user did not type. Left in, a
+// selected line saying "doesn't work" labels the prompt a fix_request — the
+// first replay audit caught exactly that. Stripped, not rejected: the user's
+// own words often follow the block.
+const WRAPPER_BLOCKS = /<(ide_selection|ide_opened_file|system-reminder)>[\s\S]*?<\/\1>/g
+
+export function stripWrappers (text) {
+  return text.replace(WRAPPER_BLOCKS, '').trim()
+}
+
 export function isHumanPrompt (entry) {
   if (entry.type !== 'user') return false
   if (entry.isSidechain) return false
@@ -47,7 +58,7 @@ export async function parseSession (filePath) {
     }
     session.sessionId ??= entry.sessionId ?? null
     if (!isHumanPrompt(entry)) continue
-    const text = promptText(entry)
+    const text = stripWrappers(promptText(entry))
     if (!text || isCommandWrapper(text)) continue
     session.prompts.push({
       ts: entry.timestamp ?? null,

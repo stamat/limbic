@@ -20,6 +20,16 @@ too sparse to cluster; above: classifier is mislabeling), and hand-auditing the 
 corrective events shows ≥ 90% are genuine corrections. The audit corpus doubles as the
 labeled test set for every later classifier change.
 
+**Audit result (2026-08-04, 1201 prompts, 309 sessions):** first classifier measured
+precision 86%, recall ~36% — and found its own ceiling: the largest missed class is
+soft critique of delivered work ("the toggle should not shift"), unclassifiable without
+the previous turn's content. Cue expansion from the audited classes (why-challenges as
+their own `challenge` label, typo variants, restore-to-previous, a diagnostic-question
+guard) lifted corrective to 3.5% with max chain 4 — the gate floor clears. The ceiling
+finding pulls the turn-context Haiku classifier from v0.3 into v0.2 as a measured
+necessity, not a convenience. Judged examples live as classifier tests; the full audit
+corpus stays local (`~/.limbic/`) — real prompt text does not enter a public repo.
+
 ## v0.2 — the dream pass (`limbic dream`)
 
 Offline deduction over the ledger. Cluster corrective events by project and similarity;
@@ -65,8 +75,11 @@ context; the dream pass proposes the mechanization the way it proposes rules. Ad
 for Codex/opencode land here — the core never knew which agent it served.
 
 **The end state:** an automated reviewer assembled from everything you ever corrected,
-judging autonomous work before you see it. You review novelty; the ledger reviews the
-rest.
+judging autonomous work before you see it — the QA floor that autonomous project
+creation stands on. The dream pass proposes recurring checks as loops the same way it
+proposes rules and mechanizations: a correction cluster that keeps recurring on a
+schedule becomes a proposed scheduled run, human-gated like everything else. You review
+novelty; the ledger reviews the rest.
 
 ## Explicitly not planned
 

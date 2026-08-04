@@ -14,7 +14,7 @@ export function ema (prev, value, alpha = 0.3) {
   return alpha * value + (1 - alpha) * prev
 }
 
-const CORRECTIVE = new Set(['correction', 'fix_request'])
+const CORRECTIVE = new Set(['correction', 'fix_request', 'challenge'])
 
 // Folds a session's labeled prompts into surprise-scored events.
 // An accept resets the chain; a neutral prompt leaves it — the user moving on

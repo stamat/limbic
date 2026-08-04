@@ -37,3 +37,32 @@ test('an empty or noise prompt is neutral, never a crash', () => {
 test('a prompt merely mentioning the word wrong is not a correction', () => {
   assert.equal(classify('add a test for the wrong-password path').label, 'neutral')
 })
+
+// The next four guarantees come from the v0 replay audit: each cue class below
+// was found in real history, judged by hand, and added with its real example.
+
+test('a why-did-we question is a challenge, not a bug and not noise', () => {
+  assert.equal(classify('why did we remove the house-style?').label, 'challenge')
+  assert.equal(classify('but why is the index in html and not in .md?').label, 'challenge')
+})
+
+test('a diagnostic question wearing corrective words stays neutral', () => {
+  const { label } = classify('does ~/localhost/poops have the same issue and why not?')
+  assert.equal(label, 'neutral', 'curiosity about scope is not a report against delivered work')
+})
+
+test('"i mean" opening a prompt is a correction even without the t', () => {
+  assert.equal(classify('i mean link them in index.md').label, 'correction')
+})
+
+test('a typo in doesnt still reads as a fix_request', () => {
+  assert.equal(classify('but the picker input dosn\'t work').label, 'fix_request')
+})
+
+test('restoring to a previous setting is a correction, not a fresh task', () => {
+  assert.equal(classify('restore the switch to the previous setting of 14px icons').label, 'correction')
+})
+
+test('output that is hard to read is a challenge to delivered work', () => {
+  assert.equal(classify('but there is a lot of output which is hard to read').label, 'challenge')
+})

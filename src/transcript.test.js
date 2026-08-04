@@ -46,6 +46,24 @@ test('a malformed line is counted, not fatal', async () => {
   assert.equal(session.prompts.length, 2, 'good lines around a bad one survive')
 })
 
+test('selected code saying doesnt-work cannot label the prompt a fix_request', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'limbic-'))
+  const file = join(dir, 's.jsonl')
+  const text = '<ide_selection>The user selected: // this doesn\'t work on safari</ide_selection>add a changelog entry'
+  await writeFile(file, JSON.stringify(human(text)) + '\n')
+  const session = await parseSession(file)
+  assert.equal(session.prompts.length, 1)
+  assert.equal(session.prompts[0].text, 'add a changelog entry', 'only the typed words survive the boundary')
+})
+
+test('a prompt that is only an ide wrapper vanishes entirely', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'limbic-'))
+  const file = join(dir, 's.jsonl')
+  await writeFile(file, JSON.stringify(human('<ide_opened_file>The user opened foo.js</ide_opened_file>')) + '\n')
+  const session = await parseSession(file)
+  assert.equal(session.prompts.length, 0)
+})
+
 test('a slash command wrapper is plumbing, not a prompt', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'limbic-'))
   const file = join(dir, 's.jsonl')
