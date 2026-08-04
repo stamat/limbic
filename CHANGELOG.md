@@ -6,6 +6,21 @@ All notable changes to limbic are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Online retrodiction** (`limbic retrodict --online`): for every corrective event,
+  was a covering cluster already deducible from what came before? Scored 0.0% on real
+  history — the burst hypothesis fails in its strong form under the hardened
+  pipeline; [REPORT.md](REPORT.md) carries the full analysis.
+- **v0.3 adapter, built not installed**: `hooks/classify.js` (regex-only hot path,
+  live ledger), `hooks/inject.js` (accepted rules only, the propose gate as security
+  boundary), `limbic install` prints the settings block and never edits settings.
+- **v0.4 prediction, opt-in and unproven**: `hooks/predict.js` (one Haiku call per
+  turn, silent-fail), hit/miss scored into the live ledger by the classify hook.
+- **REPORT.md** — day-one report: the numbers ladder, five audit-found defects, what
+  the research says, improvement stages i1–i5. v1 mechanization skipped and the
+  reason named: one accepted rule is no supply.
+
 ### Fixed
 
 - **IDE wrapper text no longer reaches the classifier.** `<ide_selection>`,

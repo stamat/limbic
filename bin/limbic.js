@@ -101,13 +101,32 @@ if (cmd === 'replay') {
   await setStatus(file, cmd === 'accept' ? 'accepted' : 'rejected')
   console.log(`${file} → ${cmd}ed`)
 } else if (cmd === 'retrodict') {
-  const { retrodict } = await import('../src/retrodict.js')
+  const { retrodict, retrodictOnline } = await import('../src/retrodict.js')
   const oracle = await makeOracle()
   const records = await readLedger(flag(args, '--ledger', defaultLedgerPath()))
-  const r = await retrodict(records, { oracle })
-  console.log(`past ${r.pastEvents} events → ${r.rules} rules; future ${r.futureEvents} events, preventable ${r.preventable} (${(r.rate * 100).toFixed(1)}%)`)
-  for (const h of r.hits) console.log(`  ~ [${h.signature}] ${h.text}`)
+  if (args.includes('--online')) {
+    const r = await retrodictOnline(records, { oracle })
+    console.log(`online: ${r.scored} scored of ${r.events} corrective; preventable ${r.preventable} (${(r.rate * 100).toFixed(1)}%)`)
+    for (const h of r.hits) console.log(`  ~ [${h.signature}] ${h.text}`)
+  } else {
+    const r = await retrodict(records, { oracle })
+    console.log(`past ${r.pastEvents} events → ${r.rules} rules; future ${r.futureEvents} events, preventable ${r.preventable} (${(r.rate * 100).toFixed(1)}%)`)
+    for (const h of r.hits) console.log(`  ~ [${h.signature}] ${h.text}`)
+  }
   oracleReport(oracle)
+} else if (cmd === 'install') {
+  // Print-only, deliberately: limbic never edits your settings.json — a
+  // memory tool that modifies its host's configuration crosses the same
+  // boundary the propose gate exists to guard. Paste the block yourself.
+  const { fileURLToPath } = await import('node:url')
+  const { dirname: dn, join: jn } = await import('node:path')
+  const root = dn(dn(fileURLToPath(import.meta.url)))
+  const hooks = {
+    UserPromptSubmit: [{ hooks: [{ type: 'command', command: `node "${jn(root, 'hooks', 'classify.js')}"`, timeout: 5 }] }],
+    SessionStart: [{ hooks: [{ type: 'command', command: `node "${jn(root, 'hooks', 'inject.js')}"`, timeout: 5 }] }]
+  }
+  console.log('add to ~/.claude/settings.json under "hooks":\n')
+  console.log(JSON.stringify(hooks, null, 2))
 } else {
   console.log(HELP)
   process.exit(cmd ? 1 : 0)

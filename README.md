@@ -42,8 +42,15 @@ npx limbic replay      # rebuild the ledger from ~/.claude/projects history
 npx limbic stats       # correction rates, surprise baseline, per-session sparklines
 npx limbic dream       # cluster corrections into proposed rules (--llm to phrase via claude -p)
 npx limbic rules       # review proposals; accept/reject each by hand
-npx limbic retrodict   # the thesis benchmark, honest either way
+npx limbic retrodict   # the thesis benchmark, honest either way (--online for per-event)
+npx limbic install     # prints the hooks block for ~/.claude/settings.json — never edits it
 ```
+
+Live hooks exist and are opt-in by hand: `hooks/classify.js` ledgers every prompt
+(regex only, exits fast, never blocks), `hooks/inject.js` injects *accepted rules
+only* at session start, `hooks/predict.js` (add it yourself, it costs one Haiku call
+per turn) predicts your next message so the following prompt scores hit or miss.
+Day-one results, defects found and the improvement plan: [REPORT.md](REPORT.md).
 
 Everything runs locally. Nothing leaves this machine; the ledger (`~/.limbic/`) stores
 labels, scores and a bounded 300-character excerpt per prompt — it is not a transcript

@@ -1,5 +1,11 @@
 # Roadmap
 
+**Day-one outcome and the improvement plan that supersedes the forward stages here:
+[REPORT.md](REPORT.md).** Short version: v0–v0.4 machinery exists, the retrodiction
+gate stands honestly unpassed at 0.0%, the bottleneck is the similarity substrate,
+and stages i1–i5 in the report are the path. This file stays as the original spec
+and gate record.
+
 Gated, not dated: each stage ships only when the previous stage's numbers clear their
 bar. A stage that fails its gate stops the project honestly — the README reports the
 numbers either way. Research debts are named where they are owed: surprise shape from

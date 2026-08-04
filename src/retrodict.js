@@ -52,3 +52,44 @@ export async function retrodict (records, { threshold = 0.25, minSize = 3, oracl
     hits
   }
 }
+
+// Online retrodiction: for every corrective event, was there already a
+// cluster covering it among the events before it? Half-split retrodiction
+// cannot credit bursts — a mistake corrected three times in one afternoon
+// forms and pays off entirely inside one half. This is the honest version of
+// the question injection would answer live: "did limbic know this already?"
+// All pair verdicts are computed once up front (cache makes this idempotent);
+// prefix clusterings are then deterministic replays over the verdict graph.
+export async function retrodictOnline (records, { minSize = 3, oracle = null } = {}) {
+  const corrective = records
+    .filter(r => CORRECTIVE.has(r.label) && r.ts)
+    .sort((a, b) => a.ts.localeCompare(b.ts))
+
+  const warm = Math.max(minSize, 3)
+  let preventable = 0
+  let scored = 0
+  const hits = []
+  for (let i = warm; i < corrective.length; i++) {
+    const past = corrective.slice(0, i)
+    const clusters = oracle
+      ? (await semanticClusters(past, oracle, { minSize })).clusters
+      : cluster(past, { minSize })
+    scored++
+    const f = corrective[i]
+    const ft = tokens(f.text)
+    let hit = clusters.find(c => c.events.some(e => jaccard(ft, tokens(e.text)) >= 0.25))
+    if (!hit && oracle) {
+      for (const c of clusters) {
+        const members = c.events.filter(e => jaccard(ft, tokens(e.text)) >= FLOOR)
+        if (!members.length) continue
+        const verdicts = await oracle.samePairs(members.map(m => ({ a: f.text, b: m.text })))
+        if (verdicts.some(v => v === true)) { hit = c; break }
+      }
+    }
+    if (hit) {
+      preventable++
+      hits.push({ text: f.text.slice(0, 100), signature: hit.signature })
+    }
+  }
+  return { events: corrective.length, scored, preventable, rate: scored ? preventable / scored : 0, hits }
+}
