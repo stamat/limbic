@@ -70,6 +70,26 @@ test('an embedding nomination merges zero-token-overlap corrections only through
   assert.equal(clusters[0].size, 2, 'the zero-overlap pair clustered; the orthogonal event did not')
 })
 
+test('a two-event cluster stands only on a double-confirmed pair', async () => {
+  // Oracle says yes to everything nominated; only the pair whose vectors also
+  // clear the embedding floor may stand as a cluster of two.
+  const vectors = {
+    'the navbar dropdown clips its overflow badly': [1, 0, 0],
+    'menu previews suffer identical clipping problems': [0.98, 0.05, 0],
+    'the navbar dropdown overflow keeps clipping still': [0, 1, 0]
+  }
+  const embedder = new Embedder({ cachePath: await cachePath(), fetchFn: async (t) => vectors[t] })
+  const oracle = new Oracle({ cachePath: await cachePath(), execFn: async () => '["yes"]' })
+  const texts = Object.keys(vectors)
+  // Pair A: texts[0]+[1] — zero lexical overlap, parallel vectors → double-confirmed.
+  // Pair B: texts[0]+[2] — high lexical overlap, orthogonal vectors → oracle-only.
+  const events = (ts) => ts.map((text, i) => ({ text, project: 'p', label: 'fix_request', ts: `t${i}` }))
+  const double = await semanticClusters(events([texts[0], texts[1]]), oracle, { minSize: 2, embedder })
+  assert.equal(double.clusters.length, 1, 'embedding and oracle agree — the pair stands')
+  const single = await semanticClusters(events([texts[0], texts[2]]), oracle, { minSize: 2, embedder })
+  assert.equal(single.clusters.length, 0, 'oracle alone cannot carry a cluster of two')
+})
+
 test('without an embedder the ask list is exactly the lexical one', async () => {
   const events = [
     { text: 'menu previews suffer identical problems', project: 'p', label: 'fix_request', ts: 't0' },

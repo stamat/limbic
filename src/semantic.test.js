@@ -23,11 +23,19 @@ test('an oracle yes merges what tokens cannot', async () => {
   assert.equal(clusters[0].size, 3, 'the semantic repeat joined its cluster')
 })
 
-test('an oracle that answers nothing leaves lexical clusters intact', async () => {
+// Spec revised with i3 (2026-08-04): a cluster of two is a claim resting on a
+// single pair, so that pair must be double-confirmed — embedding floor AND
+// oracle yes. The old guarantee (a lexical pair survives an oracle that
+// answers nothing) now holds only from size three up, where membership never
+// rests on one edge. The old test is replaced, deliberately and loudly.
+test('an unanswered oracle leaves lexical clustering intact at three, and pairs cannot stand alone', async () => {
   const oracle = { samePairs: async (pairs) => pairs.map(() => null) }
-  const { clusters } = await semanticClusters(events, oracle, { minSize: 2 })
-  assert.equal(clusters.length, 1)
-  assert.equal(clusters[0].size, 2, 'only the token-similar pair remains together')
+  const pair = await semanticClusters(events, oracle, { minSize: 2 })
+  assert.equal(pair.clusters.length, 0, 'a lexical pair alone is no longer a cluster of two')
+  const third = [...events, ev('navbar overflow clipping menu on mobile again')]
+  const three = await semanticClusters(third, oracle, { minSize: 3 })
+  assert.equal(three.clusters.length, 1, 'three lexical members still cluster with no oracle')
+  assert.equal(three.clusters[0].size, 3)
 })
 
 test('imperative glue is a category, not a cluster', async () => {

@@ -27,10 +27,11 @@ usage:
   limbic accept <file> | reject <file>
       Promote or suppress a proposed rule. Rejected clusters stay suppressed.
 
-  limbic retrodict [--ledger FILE] [--llm] [--online]
+  limbic retrodict [--ledger FILE] [--llm] [--online] [--min N]
       The thesis benchmark: rules from the first half of history scored
       against corrections in the second. --online scores every event against
-      only what came before it. Honest either way.
+      only what came before it. --min 2 admits pair-clusters, but only when
+      embedding and oracle both confirm the pair. Honest either way.
 
   limbic calibrate [--sample] [--llm] [--repeats N] [--corpus FILE]
       --sample pulls a stratified corpus from history into
@@ -135,12 +136,13 @@ if (cmd === 'replay') {
   const oracle = await makeOracle()
   const embedder = await makeEmbedder()
   const records = await readLedger(flag(args, '--ledger', defaultLedgerPath()))
+  const minSize = Number(flag(args, '--min', 3))
   if (args.includes('--online')) {
-    const r = await retrodictOnline(records, { oracle, embedder })
+    const r = await retrodictOnline(records, { oracle, embedder, minSize })
     console.log(`online: ${r.scored} scored of ${r.events} corrective; preventable ${r.preventable} (${(r.rate * 100).toFixed(1)}%)`)
     for (const h of r.hits) console.log(`  ~ [${h.signature}] ${h.text}`)
   } else {
-    const r = await retrodict(records, { oracle, embedder })
+    const r = await retrodict(records, { oracle, embedder, minSize })
     console.log(`past ${r.pastEvents} events → ${r.rules} rules; future ${r.futureEvents} events, preventable ${r.preventable} (${(r.rate * 100).toFixed(1)}%)`)
     for (const h of r.hits) console.log(`  ~ [${h.signature}] ${h.text}`)
   }

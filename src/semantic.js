@@ -33,26 +33,36 @@ export async function semanticClusters (events, oracle, { minSize = 3, embedder 
   // every sub-AUTO pair, embedding-nominated or not.
   const vecs = embedder ? await embedder.embed(events.map(e => e.text)) : []
   const edges = new Set()
+  // Edge provenance feeds the minSize-2 rule: a two-event cluster is a claim
+  // resting on one pair, so that pair must be double-confirmed — embedding
+  // floor AND oracle yes. Lexical overlap alone, or either signal alone, only
+  // ever earns membership in a 3+ cluster.
+  const meta = new Map()
   const edge = (i, j) => i < j ? `${i}:${j}` : `${j}:${i}`
 
   const ask = []
   for (let i = 0; i < events.length; i++) {
     for (let j = i + 1; j < events.length; j++) {
       const sim = jaccard(toks[i], toks[j])
+      const cos = vecs[i] && vecs[j] ? cosine(vecs[i], vecs[j]) : 0
       if (sim >= AUTO) {
         edges.add(edge(i, j))
+        meta.set(edge(i, j), { cos, oracle: false })
         continue
       }
-      const cos = vecs[i] && vecs[j] ? cosine(vecs[i], vecs[j]) : 0
-      if (sim >= FLOOR || cos >= EMB_FLOOR) ask.push({ i, j })
+      if (sim >= FLOOR || cos >= EMB_FLOOR) ask.push({ i, j, cos })
     }
   }
 
   let confirmed = 0
   if (oracle && ask.length) {
     const verdicts = await oracle.samePairs(ask.map(({ i, j }) => ({ a: events[i].text, b: events[j].text })))
-    ask.forEach(({ i, j }, n) => {
-      if (verdicts[n] === true) { edges.add(edge(i, j)); confirmed++ }
+    ask.forEach(({ i, j, cos }, n) => {
+      if (verdicts[n] === true) {
+        edges.add(edge(i, j))
+        meta.set(edge(i, j), { cos, oracle: true })
+        confirmed++
+      }
     })
   }
 
@@ -77,6 +87,11 @@ export async function semanticClusters (events, oracle, { minSize = 3, embedder 
 
   const clusters = groups
     .filter(g => g.length >= minSize)
+    .filter(g => {
+      if (g.length !== 2) return true
+      const m = meta.get(edge(g[0], g[1]))
+      return Boolean(m && m.oracle && m.cos >= EMB_FLOOR)
+    })
     .filter(g => {
       const counts = new Map()
       for (const i of g) for (const t of toks[i]) counts.set(t, (counts.get(t) ?? 0) + 1)
