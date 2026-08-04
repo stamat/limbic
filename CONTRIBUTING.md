@@ -11,11 +11,11 @@ Checked before building, not after. A PR adding any of these gets a kind no:
   exits.
 - **No API key required in core.** The Claude Code adapter (v0.3+) uses `claude -p`
   under subscription auth; an API key is an optional upgrade, never a requirement.
-- **Not a vector database, not a RAG framework.** If retrieval ever needs more than
-  grep-shaped matching over the ledger, that pressure is a design smell, not a feature
-  request.
-- **No new dependencies in core.** Zero is the number. Adapters may take exactly the
-  dependency their agent forces, and no more.
+- **No casual dependencies.** A dependency must be earned: stdlib first, and a package
+  only when it beats what we could write and own ourselves. What earns it: small
+  surface, source readable in one sitting, few-to-zero transitive dependencies, alive
+  upstream, and — when optional — a defined degrade path without it. Every new
+  dependency is an ask-first change.
 - **Not a framework.** NuPIC died when its platform outlived its research program;
   limbic stays a tool small enough to finish.
 
@@ -41,6 +41,7 @@ context. That path is the attack surface:
 - Any change to the ledger record shape (it is the API every benchmark reads).
 - Any new label in the classifier (labels are load-bearing downstream).
 - Anything that makes an LLM call.
+- Any new dependency (the refusals above say what earns one).
 
 ## The usual rules
 
