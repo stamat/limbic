@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { cluster } from './cluster.js'
+import { semanticClusters } from './semantic.js'
 import { listRules, writeRule, rulesDir } from './rules.js'
 
 const exec = promisify(execFile)
@@ -34,14 +35,19 @@ async function phrase (events, useLlm) {
   }
 }
 
-export async function dream ({ records, dir = rulesDir(), useLlm = false, minSize = 3, threshold = 0.25 }) {
+export async function dream ({ records, dir = rulesDir(), useLlm = false, oracle = null, minSize = 3, threshold = 0.25 }) {
   const corrective = records.filter(r => CORRECTIVE.has(r.label))
-  const clusters = cluster(corrective, { minSize, threshold })
+  let clusters, asked = 0, confirmed = 0
+  if (oracle) {
+    ({ clusters, asked, confirmed } = await semanticClusters(corrective, oracle, { minSize }))
+  } else {
+    clusters = cluster(corrective, { minSize, threshold })
+  }
 
   const existing = await listRules(dir)
   const known = new Set(existing.map(r => r.meta.signature))
 
-  const summary = { corrective: corrective.length, clusters: clusters.length, proposed: 0, skippedKnown: 0 }
+  const summary = { corrective: corrective.length, clusters: clusters.length, asked, confirmed, proposed: 0, skippedKnown: 0 }
   for (const c of clusters) {
     if (summary.proposed >= MAX_PROPOSALS) break
     if (known.has(c.signature)) {

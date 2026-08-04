@@ -38,6 +38,18 @@ export function promptText (entry) {
     .trim()
 }
 
+function assistantText (entry) {
+  if (entry.type !== 'assistant' || entry.isSidechain) return null
+  const content = entry.message?.content
+  if (!Array.isArray(content)) return null
+  const text = content
+    .filter(c => c.type === 'text' && c.text)
+    .map(c => c.text)
+    .join('\n')
+    .trim()
+  return text || null
+}
+
 function isCommandWrapper (text) {
   return COMMAND_MARKERS.some(m => text.includes(m))
 }
@@ -46,6 +58,7 @@ function isCommandWrapper (text) {
 // truncated writes and mid-write reads are normal on a live session file.
 export async function parseSession (filePath) {
   const session = { file: basename(filePath), sessionId: null, prompts: [], badLines: 0 }
+  let lastAssistant = null
   const rl = createInterface({ input: createReadStream(filePath), crlfDelay: Infinity })
   for await (const line of rl) {
     if (!line.trim()) continue
@@ -57,12 +70,21 @@ export async function parseSession (filePath) {
       continue
     }
     session.sessionId ??= entry.sessionId ?? null
+    // The tail of the last assistant turn rides along as context: "the toggle
+    // should not shift" is only classifiable against what was just delivered.
+    // Tail, not head — the closing summary is where delivered work is named.
+    const at = assistantText(entry)
+    if (at) {
+      lastAssistant = at.slice(-400)
+      continue
+    }
     if (!isHumanPrompt(entry)) continue
     const text = stripWrappers(promptText(entry))
     if (!text || isCommandWrapper(text)) continue
     session.prompts.push({
       ts: entry.timestamp ?? null,
       text,
+      context: lastAssistant,
       cwd: entry.cwd ?? null,
       gitBranch: entry.gitBranch ?? null
     })

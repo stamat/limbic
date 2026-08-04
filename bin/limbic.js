@@ -40,13 +40,26 @@ function flag (args, name, fallback) {
 
 const [cmd, ...args] = process.argv.slice(2)
 
+async function makeOracle () {
+  if (!args.includes('--llm')) return null
+  const { Oracle } = await import('../src/oracle.js')
+  return new Oracle({ maxCalls: Number(flag(args, '--max-calls', 60)) })
+}
+
+function oracleReport (oracle) {
+  if (oracle) console.log(`oracle: ${oracle.calls} calls, ${oracle.cacheHits} cache hits`)
+}
+
 if (cmd === 'replay') {
+  const oracle = await makeOracle()
   const summary = await replay({
     projectsDir: flag(args, '--projects', join(homedir(), '.claude', 'projects')),
     ledgerPath: flag(args, '--ledger', defaultLedgerPath()),
-    project: flag(args, '--project', null)
+    project: flag(args, '--project', null),
+    oracle
   })
-  console.log(`files ${summary.files}  sessions ${summary.sessions}  prompts ${summary.prompts}  records ${summary.records}  bad lines ${summary.badLines}`)
+  console.log(`files ${summary.files}  sessions ${summary.sessions}  prompts ${summary.prompts}  records ${summary.records}  bad lines ${summary.badLines}  oracle upgrades ${summary.oracleUpgrades}`)
+  oracleReport(oracle)
 } else if (cmd === 'stats') {
   const records = await readLedger(flag(args, '--ledger', defaultLedgerPath()))
   if (!records.length) {
@@ -56,13 +69,16 @@ if (cmd === 'replay') {
   console.log(render(aggregate(records)))
 } else if (cmd === 'dream') {
   const { dream } = await import('../src/dream.js')
+  const oracle = await makeOracle()
   const records = await readLedger(flag(args, '--ledger', defaultLedgerPath()))
   const summary = await dream({
     records,
     useLlm: args.includes('--llm'),
+    oracle,
     minSize: Number(flag(args, '--min', 3))
   })
-  console.log(`corrective ${summary.corrective}  clusters ${summary.clusters}  proposed ${summary.proposed}  already known ${summary.skippedKnown}`)
+  console.log(`corrective ${summary.corrective}  clusters ${summary.clusters}  (pairs asked ${summary.asked}, confirmed ${summary.confirmed})  proposed ${summary.proposed}  already known ${summary.skippedKnown}`)
+  oracleReport(oracle)
   if (summary.proposed) console.log('review with: limbic rules')
 } else if (cmd === 'rules') {
   const { listRules } = await import('../src/rules.js')
@@ -86,10 +102,12 @@ if (cmd === 'replay') {
   console.log(`${file} → ${cmd}ed`)
 } else if (cmd === 'retrodict') {
   const { retrodict } = await import('../src/retrodict.js')
+  const oracle = await makeOracle()
   const records = await readLedger(flag(args, '--ledger', defaultLedgerPath()))
-  const r = retrodict(records)
+  const r = await retrodict(records, { oracle })
   console.log(`past ${r.pastEvents} events → ${r.rules} rules; future ${r.futureEvents} events, preventable ${r.preventable} (${(r.rate * 100).toFixed(1)}%)`)
   for (const h of r.hits) console.log(`  ~ [${h.signature}] ${h.text}`)
+  oracleReport(oracle)
 } else {
   console.log(HELP)
   process.exit(cmd ? 1 : 0)

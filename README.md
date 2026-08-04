@@ -15,15 +15,17 @@ is *you*. Every delivery is an implicit prediction ("this is done, done well"). 
 message either confirms it or violates it, and the violations are the only part worth
 remembering.
 
-## Status: v0.2 — measurement and deduction ship, injection does not, and the benchmark says not yet
+## Status: v0.2.1 — deduction works, injection does not exist yet, benchmark at 7.5% against a 10% gate
 
 Nothing is injected into any session. `replay` measures the correction signal in your
 existing Claude Code history; `dream` clusters it into proposed rules you accept or
-reject by hand; `retrodict` runs the thesis benchmark. On this codebase's own history
-the first run scored **0.0% preventable** — repetition turned out to be semantic, and
-lexical clustering cannot see it (ROADMAP.md records the full finding). The project
-continues because the failure is located and specific, not because the number flatters
-it. The bet, priced before believing it:
+reject by hand; `retrodict` runs the thesis benchmark. The purely lexical first pass
+scored **0.0% preventable**; adding the capped, cached Haiku oracle (turn-context
+classification + same-mistake pair judgment) lifted it to **7.5%** — still short of
+the 10% gate, says so here, and ROADMAP.md records both runs. The result that keeps
+the project alive: of the seven rules the dream deduced from real corrections, two
+independently re-derived rules the author already maintains by hand in CLAUDE.md.
+The bet, priced before believing it:
 
 - **Classifier precision** — a prompt mislabeled "correction" would later become a
   poisoned rule injected into every session. v0's classifier is regex-only, precision
@@ -79,10 +81,14 @@ them on purpose — the bet is that what you *corrected* is worth more than what
 
 ## What it does not do
 
-No LLM calls in v0, so no semantic classification — sarcasm, implicit frustration and
-non-English corrections pass unlabeled. No memory injection yet. No Codex/opencode
-adapters yet (the core is agent-agnostic; adapters arrive with v0.3). Windows is
-untested — path handling uses node's path module throughout, but no CI runs there yet.
+No memory injection yet — rules sit in `~/.limbic/rules/` awaiting your verdict, and
+nothing reads them back into a session until v0.3. Without `--llm` there is no
+semantic anything: sarcasm, implicit frustration and non-English corrections pass
+unlabeled, and only token-similar corrections cluster. With `--llm` it spends your
+Claude subscription's plan budget — capped per run, cached forever, reported at the
+end of every command. No Codex/opencode adapters yet (the core is agent-agnostic;
+adapters arrive with v0.3). Windows is untested — path handling uses node's path
+module throughout, but no CI runs there yet.
 
 ## License
 

@@ -55,6 +55,18 @@ step is therefore fixed: the `claude -p` Haiku assist upgrades from phrasing-onl
 candidate pairs above a weak lexical floor — bounded calls, deterministic evidence,
 same propose gate. The harness did its job: belief priced before purchase.
 
+**Second run (2026-08-04, semantic oracle, capped at 40+30 calls): 7.5% — closer, not
+passed.** Context classification lifted corrective to 8.8% (106 events); semantic
+merge produced 7 proposed rules, retrodiction matched 4 of 53 future corrections to
+past clusters — including cross-token hits ("gap between sidebar and header" ↔
+"covering the bottom line of the header"). Two of the seven deduced rules independently
+re-derived rules the author already keeps in CLAUDE.md ("read docs end to end", "ask
+whether it should exist first") — manual and deduced doctrine converging is the
+strongest evidence yet. Before the next gate attempt: cross-session batching (per-
+session batches waste the cap on near-empty calls), an uncapped classification pass,
+and a precision audit of oracle labels — max chain hit 12, which smells like a
+mislabeled streak until audited.
+
 ## v0.3 — live hooks (Claude Code adapter)
 
 `UserPromptSubmit` classifies live (regex fast-path, capped Haiku assist), appends to

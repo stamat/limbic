@@ -24,7 +24,18 @@ All notable changes to limbic are documented here. The format follows
 
 ### Added
 
-- **v0.2 dream pass.** `limbic dream` clusters corrective events (Jaccard over
+- **v0.2.1 semantic oracle.** One module (`src/oracle.js`) owns every LLM touch:
+  batched `claude -p --model haiku` calls under subscription auth, capped per run
+  (`--max-calls`, default 60), cached forever (`~/.limbic/cache/` — the same question
+  is never paid for twice), recursion-guarded (`LIMBIC_ORACLE`), and hardened against
+  hostile model output — anything unparseable degrades to the deterministic answer.
+  `replay --llm` classifies regex-neutral prompts against the previous assistant
+  turn; `dream --llm`/`retrodict --llm` merge clusters through same-mistake pair
+  judgment (lexical floor nominates, oracle confirms, union-find merges). On real
+  history: corrective 3.5% → 8.8%, retrodiction 0.0% → 7.5%, and the dream proposed
+  7 rules — two of which independently re-derived rules the author already keeps in
+  CLAUDE.md, which is the thesis working. Also fixed: a session file vanishing
+  between listing and reading killed the first slow run; now skipped and counted. `limbic dream` clusters corrective events (Jaccard over
   stopworded tokens, zero deps) into rule candidates under `~/.limbic/rules/` —
   status `proposed`, never activated; `limbic rules` lists, `limbic accept|reject`
   promotes or suppresses, and a rejected cluster never re-proposes. `--llm` phrases

@@ -48,6 +48,11 @@ test('stored prompt text is bounded, the ledger is not a transcript store', asyn
   }
 })
 
+test('parsing a missing file raises ENOENT for replay to count as vanished', async () => {
+  const { parseSession } = await import('./transcript.js')
+  await assert.rejects(parseSession('/nonexistent/limbic/file.jsonl'), { code: 'ENOENT' })
+})
+
 test('a correction after delivery scores surprise, praise closes at zero', async () => {
   const { projects, ledger } = await fixture()
   await replay({ projectsDir: projects, ledgerPath: ledger })
