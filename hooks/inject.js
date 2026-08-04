@@ -3,13 +3,15 @@
 // Accepted only, ever: the propose gate is the security boundary between the
 // ledger and the agent's context (see CONTRIBUTING.md threat model). RPMS
 // arbitration holds here too — rules inject, episodes never do.
-import { readFile } from 'node:fs/promises'
+// Stdin is fd 0, readable only by the sync fs API — the promises readFile
+// refuses fds and the refusal exited this hook silently before it ever ran.
+import { readFileSync } from 'node:fs'
 import { listRules } from '../src/rules.js'
 
 if (process.env.LIMBIC_ORACLE) process.exit(0)
 
 try {
-  const input = JSON.parse(await readFile(0, 'utf8')).cwd ?? ''
+  readFileSync(0, 'utf8')
   const accepted = (await listRules()).filter(r => r.meta.status === 'accepted')
   if (accepted.length) {
     console.log('# limbic — rules learned from your own corrections\n')

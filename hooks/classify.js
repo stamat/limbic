@@ -4,6 +4,10 @@
 // replay/dream) and append the event to the live ledger. Exit 0 always, fast:
 // a memory tool that delays or blocks a prompt is worse than no memory tool.
 import { appendFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+// Stdin is fd 0, and the promises readFile refuses fds — the sync one reads
+// them. Every hook read stdin the promises way once, threw, and exited 0
+// silently: three hooks dead on arrival, caught by the first hook test.
+import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { homedir } from 'node:os'
 import { classify } from '../src/classify.js'
@@ -12,7 +16,7 @@ import { momentary, CORRECTIVE } from '../src/surprise.js'
 if (process.env.LIMBIC_ORACLE) process.exit(0)
 
 try {
-  const input = JSON.parse(await readFile(0, 'utf8'))
+  const input = JSON.parse(readFileSync(0, 'utf8'))
   const text = (input.prompt ?? '').trim()
   if (text) {
     const { label, cue } = classify(text)

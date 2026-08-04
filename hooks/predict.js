@@ -9,13 +9,15 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
+// Stdin is fd 0 — the promises readFile refuses fds, the sync one reads them.
+import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { homedir } from 'node:os'
 
 if (process.env.LIMBIC_ORACLE) process.exit(0)
 
 try {
-  const input = JSON.parse(await readFile(0, 'utf8'))
+  const input = JSON.parse(readFileSync(0, 'utf8'))
   const transcript = await readFile(input.transcript_path, 'utf8')
   const lines = transcript.trim().split('\n').slice(-40)
   let lastAssistant = null
