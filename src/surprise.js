@@ -17,14 +17,16 @@ export function ema (prev, value, alpha = 0.3) {
 const CORRECTIVE = new Set(['correction', 'fix_request', 'challenge'])
 
 // Folds a session's labeled prompts into surprise-scored events.
-// An accept resets the chain; a neutral prompt leaves it — the user moving on
-// without praise is not evidence the fix landed.
+// Any non-corrective prompt resets the chain: chain measures an unbroken run
+// of corrections — "the fix did not take, twice" — while session-scale heat
+// belongs to the EMA trace. The first audit found a chain of 15 spanning a
+// full day of unrelated fixes, which is a hot session, not one escalation.
 export function scoreSession (labeled) {
   let chain = 0
   let trace = null
   return labeled.map(item => {
     if (CORRECTIVE.has(item.label)) chain++
-    else if (item.label === 'accept') chain = 0
+    else chain = 0
     const m = CORRECTIVE.has(item.label) ? momentary(chain) : 0
     trace = ema(trace, m)
     return { ...item, chain: CORRECTIVE.has(item.label) ? chain : 0, surprise: m, trace }

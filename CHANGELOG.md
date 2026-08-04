@@ -22,6 +22,26 @@ All notable changes to limbic are documented here. The format follows
   rate on real history moved 1.2% → 3.5%, max chain 1 → 4. Stats break corrective into
   `c/f/q` per project.
 
+### Changed
+
+- **Chain spec revised: any non-corrective prompt resets the chain.** The first audit
+  found a "chain of 15" spanning a day of unrelated fixes — cumulative session heat,
+  which the EMA trace already measures. Escalation now means an unbroken run of
+  corrections. The old guarantee's test is replaced, deliberately and loudly.
+- **Cluster merging is average-linkage, not union-find** — one drifted oracle "yes"
+  chained a 16-member misc-blob on the first uncapped run, and a blob matches
+  everything. Two groups merge only when ≥60% of cross-pairs are confirmed. Plus a
+  generic-vocabulary guard: clusters sharing only words like "fix"/"all"/"broken" are
+  categories, not mistakes, and are dropped.
+- **Oracle v2**: design questions ("was it better to…") are neutral, not challenges;
+  cache keys carry the instruction version so a better prompt cannot silently reuse
+  answers to the old one; replay batches the oracle backlog across sessions (26 calls
+  now cover what 40 per-session calls did not).
+- **Retrodiction after all of the above: 0.0%**, down from an inflated 20.8% — each
+  drop a measurement artifact dying. ROADMAP.md records the run ladder and the
+  burst-locality hypothesis it leaves; a sliding-window benchmark is the named next
+  step.
+
 ### Added
 
 - **v0.2.1 semantic oracle.** One module (`src/oracle.js`) owns every LLM touch:

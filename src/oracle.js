@@ -18,6 +18,11 @@ import { homedir } from 'node:os'
 
 const BATCH = 20
 const TIMEOUT = 120000
+// Cache keys carry the instruction version: a cached verdict answers one
+// exact question, and improving the prompt silently reusing old answers is
+// cache poisoning — the first audit nearly shipped it.
+const CLASSIFY_V = 2
+const PAIRS_V = 1
 
 export function defaultCachePath () {
   return join(homedir(), '.limbic', 'cache', 'oracle.jsonl')
@@ -71,7 +76,7 @@ export class Oracle {
     const out = new Array(items.length).fill(null)
     const pending = []
     items.forEach((item, i) => {
-      const key = 'c:' + hash(`${item.context ?? ''}\n${item.text}`)
+      const key = `c${CLASSIFY_V}:` + hash(`${item.context ?? ''}\n${item.text}`)
       if (this.cache.has(key)) {
         out[i] = this.cache.get(key)
         this.cacheHits++
@@ -86,6 +91,7 @@ export class Oracle {
       const prompt = [
         'You label user messages sent to an AI coding agent. For each item, PREV is what the agent last said or did; USER is the user\'s reply.',
         'Labels: correction (user says prior work or understanding was wrong), fix_request (user reports delivered work broken or not working), challenge (user questions or complains about a decision or quality of delivered work), neutral (anything else: new tasks, questions, information).',
+        'A question exploring options, weighing a design, or asking advice is neutral even when it concerns existing work — challenge requires the user pushing back, not thinking aloud.',
         'Precision over recall: when unsure, neutral.',
         `Reply with ONLY a JSON array of ${batch.length} strings, the labels in order.`,
         '',
@@ -108,7 +114,7 @@ export class Oracle {
     const out = new Array(pairs.length).fill(null)
     const pending = []
     pairs.forEach((p, i) => {
-      const key = 'p:' + hash([p.a, p.b].sort().join('\n'))
+      const key = `p${PAIRS_V}:` + hash([p.a, p.b].sort().join('\n'))
       if (this.cache.has(key)) {
         out[i] = this.cache.get(key)
         this.cacheHits++

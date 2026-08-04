@@ -10,17 +10,32 @@ import { tokens, jaccard } from './cluster.js'
 const AUTO = 0.25
 const FLOOR = 0.06
 
+// A cluster held together only by imperative glue is a category, not a
+// mistake: "fix it" and "fix all" share a verb, never a lesson. Clusters
+// whose shared vocabulary sits entirely in this set are dropped — the first
+// honest retrodiction run counted four such matches as "preventable".
+const GENERIC = new Set([
+  'fix', 'all', 'still', 'work', 'working', 'broken', 'issue', 'issues',
+  'need', 'needs', 'wrong', 'bug', 'error', 'problem', 'update', 'change'
+])
+
+// Merging is average-linkage over the confirmed-pair graph, not union-find:
+// transitive closure let one drifted oracle "yes" chain unrelated corrections
+// into a 16-member misc-dissatisfaction blob on the first real run, and a
+// blob matches everything, which flatters every benchmark downstream. Two
+// groups merge only when at least LINKAGE of their cross-pairs are confirmed.
+const LINKAGE = 0.6
+
 export async function semanticClusters (events, oracle, { minSize = 3 } = {}) {
   const toks = events.map(e => tokens(e.text))
-  const parent = events.map((_, i) => i)
-  const find = (x) => parent[x] === x ? x : (parent[x] = find(parent[x]))
-  const union = (a, b) => { parent[find(a)] = find(b) }
+  const edges = new Set()
+  const edge = (i, j) => i < j ? `${i}:${j}` : `${j}:${i}`
 
   const ask = []
   for (let i = 0; i < events.length; i++) {
     for (let j = i + 1; j < events.length; j++) {
       const sim = jaccard(toks[i], toks[j])
-      if (sim >= AUTO) union(i, j)
+      if (sim >= AUTO) edges.add(edge(i, j))
       else if (sim >= FLOOR) ask.push({ i, j })
     }
   }
@@ -29,20 +44,40 @@ export async function semanticClusters (events, oracle, { minSize = 3 } = {}) {
   if (oracle && ask.length) {
     const verdicts = await oracle.samePairs(ask.map(({ i, j }) => ({ a: events[i].text, b: events[j].text })))
     ask.forEach(({ i, j }, n) => {
-      if (verdicts[n] === true) { union(i, j); confirmed++ }
+      if (verdicts[n] === true) { edges.add(edge(i, j)); confirmed++ }
     })
   }
 
-  const groups = new Map()
-  events.forEach((e, i) => {
-    const root = find(i)
-    if (!groups.has(root)) groups.set(root, [])
-    groups.get(root).push(i)
-  })
+  let groups = events.map((_, i) => [i])
+  for (let merged = true; merged;) {
+    merged = false
+    let best = null
+    for (let a = 0; a < groups.length; a++) {
+      for (let b = a + 1; b < groups.length; b++) {
+        let links = 0
+        for (const i of groups[a]) for (const j of groups[b]) if (edges.has(edge(i, j))) links++
+        const density = links / (groups[a].length * groups[b].length)
+        if (density >= LINKAGE && (!best || density > best.density)) best = { a, b, density }
+      }
+    }
+    if (best) {
+      groups[best.a] = groups[best.a].concat(groups[best.b])
+      groups.splice(best.b, 1)
+      merged = true
+    }
+  }
 
-  const clusters = [...groups.values()]
+  const clusters = groups
     .filter(g => g.length >= minSize)
+    .filter(g => {
+      const counts = new Map()
+      for (const i of g) for (const t of toks[i]) counts.set(t, (counts.get(t) ?? 0) + 1)
+      const floor = Math.ceil(g.length / 2)
+      const shared = [...counts.entries()].filter(([, n]) => n >= floor).map(([t]) => t)
+      return shared.some(t => !GENERIC.has(t))
+    })
     .map(g => {
+      g.sort((a, b) => a - b)
       const evs = g.map(i => events[i])
       const counts = new Map()
       for (const i of g) for (const t of toks[i]) counts.set(t, (counts.get(t) ?? 0) + 1)

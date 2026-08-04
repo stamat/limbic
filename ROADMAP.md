@@ -55,6 +55,20 @@ step is therefore fixed: the `claude -p` Haiku assist upgrades from phrasing-onl
 candidate pairs above a weak lexical floor — bounded calls, deterministic evidence,
 same propose gate. The harness did its job: belief priced before purchase.
 
+**Third run (2026-08-04, audit-hardened): 0.0% — and that is the finding.** The day's
+numbers, in order: 7.5% (capped oracle), 20.8% (uncapped — inflated by a 16-member
+union-find blob and an imperative-glue cluster), 9.1% (average-linkage killed the
+blob), 0.0% (generic-vocabulary guard killed "fix it"~"fix all"). Each drop was a
+measurement artifact dying, not signal vanishing: the full-history dream still finds
+real clusters (the 9-event pseudo-element saga), but those bursts live inside one
+project phase — split chronologically in half, their membership scatters below
+threshold. The hypothesis this leaves: corrections recur in *bursts within a work
+phase*, not across months, so a rule's payoff window is the rest of the burst — which
+half-split retrodiction structurally cannot see. Next benchmark: sliding-window
+retrodiction (rule deduced at event k, scored against k+1…k+w). Until it runs, the
+thesis stands undemonstrated on this history and this README-level claim stays
+exactly that honest.
+
 **Second run (2026-08-04, semantic oracle, capped at 40+30 calls): 7.5% — closer, not
 passed.** Context classification lifted corrective to 8.8% (106 events); semantic
 merge produced 7 proposed rules, retrodiction matched 4 of 53 future corrections to

@@ -29,3 +29,28 @@ test('an oracle that answers nothing leaves lexical clusters intact', async () =
   assert.equal(clusters.length, 1)
   assert.equal(clusters[0].size, 2, 'only the token-similar pair remains together')
 })
+
+test('imperative glue is a category, not a cluster', async () => {
+  const cmds = [ev('fix it'), ev('fix all'), ev('fix all of them, still broken')]
+  const oracle = { samePairs: async (pairs) => pairs.map(() => true) }
+  const { clusters } = await semanticClusters(cmds, oracle, { minSize: 3 })
+  assert.equal(clusters.length, 0, '"fix" shared three ways is a verb, not a lesson')
+})
+
+test('one drifted yes cannot snowball unrelated corrections into a blob', async () => {
+  // A~B and B~C confirmed, A~C denied: transitive closure would glue all
+  // three — the 16-member blob from the first real run in miniature.
+  const abc = [
+    ev('navbar overflow menu clips mobile items'),
+    ev('menu clips on mobile, overflow issue somewhere'),
+    ev('mobile scroll feels broken on the menu page')
+  ]
+  const oracle = {
+    samePairs: async (pairs) => pairs.map(p =>
+      (p.a.includes('navbar') && p.b.includes('scroll')) || (p.a.includes('scroll') && p.b.includes('navbar'))
+        ? false
+        : true)
+  }
+  const { clusters } = await semanticClusters(abc, oracle, { minSize: 3 })
+  assert.equal(clusters.length, 0, 'a chain of single links is not a cluster')
+})

@@ -20,12 +20,14 @@ remembering.
 Nothing is injected into any session. `replay` measures the correction signal in your
 existing Claude Code history; `dream` clusters it into proposed rules you accept or
 reject by hand; `retrodict` runs the thesis benchmark. The purely lexical first pass
-scored **0.0% preventable**; adding the capped, cached Haiku oracle (turn-context
-classification + same-mistake pair judgment) lifted it to **7.5%** — still short of
-the 10% gate, says so here, and ROADMAP.md records both runs. The result that keeps
-the project alive: of the seven rules the dream deduced from real corrections, two
-independently re-derived rules the author already maintains by hand in CLAUDE.md.
-The bet, priced before believing it:
+scored **0.0% preventable**; the Haiku oracle briefly showed 20.8% — which died under
+audit, artifact by artifact (a union-find mega-blob, imperative-glue clusters), back
+to an honest **0.0%**. ROADMAP.md records every run and the hypothesis the numbers
+left behind: corrections recur in bursts inside a work phase, which half-split
+retrodiction structurally cannot credit — a sliding-window benchmark is next. What
+keeps the project alive meanwhile: the dream pass deduced seven rules from real
+corrections, two of which independently re-derived rules the author already maintains
+by hand in CLAUDE.md. The bet, priced before believing it:
 
 - **Classifier precision** — a prompt mislabeled "correction" would later become a
   poisoned rule injected into every session. v0's classifier is regex-only, precision
