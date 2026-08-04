@@ -24,6 +24,15 @@ All notable changes to limbic are documented here. The format follows
 
 ### Added
 
+- **v0.2 dream pass.** `limbic dream` clusters corrective events (Jaccard over
+  stopworded tokens, zero deps) into rule candidates under `~/.limbic/rules/` —
+  status `proposed`, never activated; `limbic rules` lists, `limbic accept|reject`
+  promotes or suppresses, and a rejected cluster never re-proposes. `--llm` phrases
+  rules via `claude -p` (subscription auth), degrading to an editable template on any
+  failure; the LLM never picks cluster membership. `limbic retrodict` runs the thesis
+  benchmark — first run scored 0.0% preventable on real history and the ROADMAP
+  records why: repetition is semantic, lexical clustering cannot see it.
+
 - **v0 measurement harness.** `limbic replay` rebuilds a local ledger
   (`~/.limbic/ledger.jsonl`) from Claude Code session history: human prompts only
   (sidechains, tool results and command wrappers excluded), classified by a

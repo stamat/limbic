@@ -45,6 +45,16 @@ decay when their cluster stops recurring; rejected clusters stay suppressed.
 half, scored against the second: what fraction of later corrections did an earlier rule
 address? **Gate to v0.3:** ≥ 10% preventable, and zero rules a human audit calls wrong.
 
+**First run (2026-08-04): 0.0% — gate not passed.** 42 corrective events produced zero
+clusters at gate settings; loosening the threshold manufactured clusters glued by
+generic phrases ("isn't working"), the exact generic-advice failure Evo-Memory warns
+about. Two ceilings, one cause: real repetition is semantic — "menu previews suffer the
+same issues navbar did" shares no tokens with the navbar corrections it repeats. Next
+step is therefore fixed: the `claude -p` Haiku assist upgrades from phrasing-only to
+(a) turn-context classification during replay and (b) same-mistake judgment on
+candidate pairs above a weak lexical floor — bounded calls, deterministic evidence,
+same propose gate. The harness did its job: belief priced before purchase.
+
 ## v0.3 — live hooks (Claude Code adapter)
 
 `UserPromptSubmit` classifies live (regex fast-path, capped Haiku assist), appends to

@@ -15,13 +15,15 @@ is *you*. Every delivery is an implicit prediction ("this is done, done well"). 
 message either confirms it or violates it, and the violations are the only part worth
 remembering.
 
-## Status: v0, a measurement harness — the thesis is deliberately unproven
+## Status: v0.2 — measurement and deduction ship, injection does not, and the benchmark says not yet
 
-This version makes no memories and injects nothing. It replays your existing Claude Code
-session history and measures whether the signal limbic bets on actually exists: how often
-you correct, how corrections chain, what your baseline looks like. If the numbers come
-back noise, the project stops here and this README will say so. The bet, priced before
-believing it:
+Nothing is injected into any session. `replay` measures the correction signal in your
+existing Claude Code history; `dream` clusters it into proposed rules you accept or
+reject by hand; `retrodict` runs the thesis benchmark. On this codebase's own history
+the first run scored **0.0% preventable** — repetition turned out to be semantic, and
+lexical clustering cannot see it (ROADMAP.md records the full finding). The project
+continues because the failure is located and specific, not because the number flatters
+it. The bet, priced before believing it:
 
 - **Classifier precision** — a prompt mislabeled "correction" would later become a
   poisoned rule injected into every session. v0's classifier is regex-only, precision
@@ -32,8 +34,11 @@ believing it:
 ## Use
 
 ```sh
-npx limbic replay   # rebuild the ledger from ~/.claude/projects history
-npx limbic stats    # correction rates, surprise baseline, per-session sparklines
+npx limbic replay      # rebuild the ledger from ~/.claude/projects history
+npx limbic stats       # correction rates, surprise baseline, per-session sparklines
+npx limbic dream       # cluster corrections into proposed rules (--llm to phrase via claude -p)
+npx limbic rules       # review proposals; accept/reject each by hand
+npx limbic retrodict   # the thesis benchmark, honest either way
 ```
 
 Everything runs locally. Nothing leaves this machine; the ledger (`~/.limbic/`) stores
