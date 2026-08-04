@@ -27,11 +27,16 @@ usage:
   limbic accept <file> | reject <file>
       Promote or suppress a proposed rule. Rejected clusters stay suppressed.
 
-  limbic retrodict [--ledger FILE]
+  limbic retrodict [--ledger FILE] [--llm] [--online]
       The thesis benchmark: rules from the first half of history scored
-      against corrections in the second. Honest either way.
+      against corrections in the second. --online scores every event against
+      only what came before it. Honest either way.
 
-Everything runs locally; only --llm ever calls a model.`
+  limbic install
+      Print the hooks block for ~/.claude/settings.json — never edits it.
+
+Everything runs locally; only --llm ever calls a model. --llm accepts
+--max-calls N (default 60) — the per-run cap on claude invocations.`
 
 function flag (args, name, fallback) {
   const i = args.indexOf(name)

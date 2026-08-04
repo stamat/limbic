@@ -15,23 +15,28 @@ is *you*. Every delivery is an implicit prediction ("this is done, done well"). 
 message either confirms it or violates it, and the violations are the only part worth
 remembering.
 
-## Status: v0.2.1 — deduction works, injection does not exist yet, benchmark at 7.5% against a 10% gate
+## Status: detection-first rebuild — the cascade is live in replay, hooks are built and opt-in, the benchmark stands honest at 0.0%
 
-Nothing is injected into any session. `replay` measures the correction signal in your
-existing Claude Code history; `dream` clusters it into proposed rules you accept or
-reject by hand; `retrodict` runs the thesis benchmark. The purely lexical first pass
-scored **0.0% preventable**; the Haiku oracle briefly showed 20.8% — which died under
-audit, artifact by artifact (a union-find mega-blob, imperative-glue clusters), back
-to an honest **0.0%**. ROADMAP.md records every run and the hypothesis the numbers
-left behind: corrections recur in bursts inside a work phase, which half-split
-retrodiction structurally cannot credit — a sliding-window benchmark is next. What
-keeps the project alive meanwhile: the dream pass deduced seven rules from real
-corrections, two of which independently re-derived rules the author already maintains
-by hand in CLAUDE.md. The bet, priced before believing it:
+Nothing is injected into any session unless you install the hooks yourself. `replay`
+measures the correction signal in your existing Claude Code history; `dream` clusters
+it into proposed rules you accept or reject by hand; `retrodict` runs the thesis
+benchmark. The purely lexical first pass scored **0.0% preventable**; the Haiku
+oracle briefly showed 20.8% — which died under audit, artifact by artifact (a
+union-find mega-blob, imperative-glue clusters), back to an honest **0.0%** — and
+the online (sliding-window) benchmark then scored 0.0% too: under the hardened
+pipeline, no cluster forms early enough to cover a later correction. Detection now
+comes first: a cascade of regex cues, behavioral events (interruptions, tool
+denials, agent self-confessions), a repeat/rephrase detector and a refutation pass
+over every oracle positive — [REPORT.md](REPORT.md) carries the full numbers ladder
+and the i-stages that attack the 0.0%. What keeps the project alive meanwhile: the
+dream pass deduced seven rules from real corrections, two of which independently
+re-derived rules the author already maintains by hand in CLAUDE.md. The bet, priced
+before believing it:
 
 - **Classifier precision** — a prompt mislabeled "correction" would later become a
-  poisoned rule injected into every session. v0's classifier is regex-only, precision
-  over recall, and every label carries the cue that fired, so you can audit it.
+  poisoned rule injected into every session. The cascade is precision-first at every
+  layer, and every label carries the cue, marker or verdict that fired, so you can
+  audit it.
 - **Signal density** — rules need repeated corrections to cluster. If you correct too
   rarely, or too uniformly, there is nothing to deduce.
 
@@ -61,8 +66,9 @@ archive, by refusal (see CONTRIBUTING.md).
 
 Corrections chain: `surprise = 1 − 0.5ⁿ` for the *n*-th consecutive correction — the
 second correction on the same work is not twice the signal, it is "the first fix did not
-take," which is worse news. An accept closes the chain; silence does not (moving on
-without praise is not evidence the fix landed). Session scores are read against your own
+take," which is worse news. Any non-corrective prompt closes the chain — praise confirms
+the fix landed, moving on simply ends the episode; escalation means an unbroken run of
+corrections, and session-scale heat belongs to the EMA trace. Session scores are read against your own
 rolling baseline, never raw — a user who corrects everything must not light the meter
 every session. The shape is stolen honestly: chained-and-decaying surprise from
 [Titans](https://arxiv.org/abs/2501.00663), baseline normalization from
@@ -91,14 +97,15 @@ them on purpose — the bet is that what you *corrected* is worth more than what
 
 ## What it does not do
 
-No memory injection yet — rules sit in `~/.limbic/rules/` awaiting your verdict, and
-nothing reads them back into a session until v0.3. Without `--llm` there is no
-semantic anything: sarcasm, implicit frustration and non-English corrections pass
-unlabeled, and only token-similar corrections cluster. With `--llm` it spends your
-Claude subscription's plan budget — capped per run, cached forever, reported at the
-end of every command. No Codex/opencode adapters yet (the core is agent-agnostic;
-adapters arrive with v0.3). Windows is untested — path handling uses node's path
-module throughout, but no CI runs there yet.
+No memory injection unless you install it — rules sit in `~/.limbic/rules/` awaiting
+your verdict, and nothing reads them back into a session until you paste the hooks
+block yourself (`limbic install` prints it, never edits settings). Without `--llm`
+there is no semantic anything: sarcasm, implicit frustration and non-English
+corrections pass unlabeled, and only token-similar corrections cluster. With `--llm`
+it spends your Claude subscription's plan budget — capped per run, cached forever,
+reported at the end of every command. No Codex/opencode adapters yet (the core is
+agent-agnostic; adapters land at v1). Windows is untested — path handling uses
+node's path module throughout, but no CI runs there yet.
 
 ## License
 
