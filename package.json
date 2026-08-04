@@ -1,0 +1,32 @@
+{
+  "name": "limbic",
+  "version": "0.0.0",
+  "description": "An agent's memory gate — learns what you correct, so you stop correcting it.",
+  "type": "module",
+  "bin": {
+    "limbic": "bin/limbic.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "sh script/test",
+    "lint": "sh script/lint"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stamat/limbic.git"
+  },
+  "keywords": [
+    "claude-code",
+    "agent-memory",
+    "surprise",
+    "corrections",
+    "hawkins"
+  ],
+  "author": "@stamat",
+  "license": "MIT"
+}

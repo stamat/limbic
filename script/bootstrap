@@ -1,0 +1,6 @@
+#!/bin/sh
+# Nothing to install — limbic has zero dependencies and that is a feature
+# with a test: this script failing to stay trivial means the constraint broke.
+set -e
+node --version >/dev/null 2>&1 || { echo "limbic needs node >= 20" >&2; exit 1; }
+echo "bootstrap: nothing to install, node present"
