@@ -15,7 +15,7 @@ is *you*. Every delivery is an implicit prediction ("this is done, done well"). 
 message either confirms it or violates it, and the violations are the only part worth
 remembering.
 
-## Status: detection-first rebuild — the cascade is live in replay, hooks are built and opt-in, the benchmark stands honest at 0.0%
+## Status: measured — detection κ 0.85, online retrodiction 4.3% at double-confirmed pairs, hooks await your paste
 
 Nothing is injected into any session unless you install the hooks yourself. `replay`
 measures the correction signal in your existing Claude Code history; `dream` clusters
@@ -23,12 +23,13 @@ it into proposed rules you accept or reject by hand; `retrodict` runs the thesis
 benchmark. The purely lexical first pass scored **0.0% preventable**; the Haiku
 oracle briefly showed 20.8% — which died under audit, artifact by artifact (a
 union-find mega-blob, imperative-glue clusters), back to an honest **0.0%** — and
-the online (sliding-window) benchmark then scored 0.0% too: under the hardened
-pipeline, no cluster forms early enough to cover a later correction. Detection now
-comes first: a cascade of regex cues, behavioral events (interruptions, tool
-denials, agent self-confessions), a repeat/rephrase detector and a refutation pass
-over every oracle positive — [REPORT.md](REPORT.md) carries the full numbers ladder
-and the i-stages that attack the 0.0%. What keeps the project alive meanwhile: the
+the number that finally survived hardening is **4.3% online**, from pair-clusters
+admitted only when embedding and oracle both confirm them. Detection comes first:
+a cascade of regex cues, behavioral events (interruptions, tool denials, agent
+self-confessions), a repeat/rephrase detector and a refutation pass over every
+oracle positive, measured at **κ 0.85** against a hand corpus — [REPORT.md](REPORT.md)
+carries the full numbers ladder, [GUIDE.md](GUIDE.md) the operations manual. What
+keeps the project alive besides the numbers: the
 dream pass deduced seven rules from real corrections, two of which independently
 re-derived rules the author already maintains by hand in CLAUDE.md. The bet, priced
 before believing it:
