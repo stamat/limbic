@@ -3,4 +3,4 @@ set -e
 cd "$(dirname "$0")/.."
 # Explicit glob, not the directory form: `node --test src/` silently discovered
 # one test of nineteen on node 25 — a green run that ran nothing.
-node --test src/*.test.js
+node --test src/*.test.js hooks/*.test.js

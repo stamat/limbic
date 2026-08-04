@@ -3,7 +3,7 @@
 # node --check catches what a missing linter would let a typo ship.
 set -e
 cd "$(dirname "$0")/.."
-for f in src/*.js bin/*.js; do
+for f in src/*.js bin/*.js hooks/*.js; do
   node --check "$f"
 done
-echo "lint: ${0##*/} checked $(ls src/*.js bin/*.js | wc -l | tr -d ' ') files"
+echo "lint: ${0##*/} checked $(ls src/*.js bin/*.js hooks/*.js | wc -l | tr -d ' ') files"
