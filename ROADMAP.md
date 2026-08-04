@@ -1,10 +1,54 @@
 # Roadmap
 
-**Day-one outcome and the improvement plan that supersedes the forward stages here:
-[REPORT.md](REPORT.md).** Short version: v0–v0.4 machinery exists, the retrodiction
-gate stands honestly unpassed at 0.0%, the bottleneck is the similarity substrate,
-and stages i1–i5 in the report are the path. This file stays as the original spec
-and gate record.
+**The i-stages [REPORT.md](REPORT.md) defined are built and measured (2026-08-04):
+detection κ 0.85, online retrodiction 4.3% at double-confirmed pairs, hooks tested,
+curator live.** REPORT.md holds the record and the numbers; this file owns what
+comes next. The v-sections below stay as the original spec and gate record.
+
+## Where things stand
+
+| Stage | State |
+|---|---|
+| v0 harness · v0.2 dream · i0 cascade · i1 embeddings · i2 calibration · i3 pairs · i5 curator | built, tested, measured — numbers in REPORT.md |
+| v0.3 hooks | built, tested, resurrected from a silent stdin death — awaiting your paste |
+| v0.4 prediction | built, opt-in, zero live data |
+| v1 mechanization · adapters | not started — supply-gated (n5) |
+
+## Next (n-stages)
+
+Gated, not dated, as always: each stage ships when the previous one's numbers
+clear their bar.
+
+| Stage | What | Gate |
+|---|---|---|
+| n1 | Ground truth and the oracle's verdict: overwrite the Opus-reference labels wherever your judgment differs (`~/.limbic/corpus/labels.jsonl`, then `limbic calibrate`), tune the oracle's challenge-recall against the measured soft-critique ceiling | user-gold κ published in REPORT; oracle beats deterministic κ 0.85 or leaves the replay path |
+| n2 | Live pilot: paste `limbic install [--predict]`, two weeks of live ledger | correction rate on rule-covered classes drops; prediction hit-rate reported whatever it is |
+| n3 | Instruction mining: cluster the dense neutral-instruction stream ("commit", "do it", per-project rituals — the corpus is 54% instructions) into proposed standing automations: a skill, a hook, a CLAUDE.md line. Propose-gated like rules; the offline twin of v0.4's prediction loop | one proposed automation accepted and used in a real session |
+| n4 | Rule supply: audit the six online hits (the wrong-rule check i3's gate still owes), work the pair-rule inbox, dream after real work sessions | ≥5 accepted rules alive; zero wrong rules on audit |
+| n5 | Mechanization and adapters — the original v1, revisited with real supply | the first mechanized rule replaces its injected text |
+
+## Exploration areas
+
+Where the solution can still be perfected, each with the reason it is not built yet:
+
+- **Git-side retention** — deletion-without-modification is the correction nobody
+  types (30.9% of agent code in published data). A different trust boundary than
+  transcripts; earns its design after n2 shows what the transcript layers miss.
+- **Curator's second direction** — doctrine lines the ledger *contradicts*, not
+  just rules it already covers. Needs accumulated live evidence to judge against.
+- **Rephrase beyond the immediate neighbour** — a window, and cross-session
+  re-asks. The hand corpus decides whether the recall exists to be won.
+- **Multilingual cues** — Serbian corrections pass the regex unlabeled today and
+  survive only via the oracle. Cue sets per language once the English κ is gold.
+- **A local fine-tuned classifier** (SetFit-class) — candidate under the
+  dependency policy once the corpus passes ~1k items; the gate is beating the
+  calibrated cascade on held-out κ.
+- **Injection budget measurement** — tokens injected vs corrections saved, the
+  RecoveryBench warning made a number. Needs n2 live data.
+- **Behavioral weights** — what surprise an interruption actually deserves,
+  learned from live chains rather than assumed zero.
+- **Per-project rule scoping and decay in the live loop** — rules that stop
+  recurring should fade from injection; needs weeks of live ledger.
 
 Gated, not dated: each stage ships only when the previous stage's numbers clear their
 bar. A stage that fails its gate stops the project honestly — the README reports the

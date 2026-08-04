@@ -98,8 +98,25 @@ All notable changes to limbic are documented here. The format follows
   proposes rather than drops; the last hand is the user's. `limbic install
   --predict` completes i4 prep by printing the opt-in Stop hook.
 
+- **i2 calibration published.** 106-item corpus fully labeled (Opus-reference
+  annotations, provenance marked per item — overwrite any line and rerun):
+  deterministic cascade **κ 0.85, agreement 91%**, per-label precision 0.87–1.00
+  on corrective classes; the measured ceiling is soft critique (challenge recall
+  0.68). Oracle cascade across 3 fresh-cache shuffled runs: κ 0.80–0.81,
+  inter-run κ 0.91–0.96 — consistent, order-stable, and currently adding no
+  accuracy over the deterministic layers; its tuning-or-removal is n1's call.
+- **GUIDE.md** — the operations manual: commands in working order, the cascade,
+  label definitions for hand-labeling, every file on disk, costs and caps, the
+  degrade matrix. **ROADMAP.md** resumes ownership of what's next: n-stages
+  (gold labels, live pilot, instruction mining, rule supply, mechanization) and
+  the exploration areas, each with the reason it is not built yet.
+
 ### Fixed
 
+- **A verbatim resend is a retry, not a rephrase.** Both rephrase firings on real
+  history were identical prompts resent after infrastructure errors (expired
+  session, spend limit) — 0-for-2 on the hand audit. The detector now requires
+  rewording; fixing it moved deterministic κ 0.82 → 0.85.
 - **All three hooks were dead on arrival**: they read stdin with the promises
   `readFile(0)`, which refuses file descriptors — the read threw, the outer catch
   swallowed it, and every hook exited 0 having done nothing. Caught by the first

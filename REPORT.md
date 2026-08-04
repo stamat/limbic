@@ -124,10 +124,48 @@ behind i0 is [RESEARCH.md](RESEARCH.md).
 | v1 mechanization | Skipped: one accepted rule is no supply; revisit after i3 |
 | i0 detection hardening | Built and benchmarked (2026-08-04): behavioral layer, rephrase layer, validation layer live; tests green. The gate's κ half waits on i2 — precision against the hand corpus is measured there, not claimed here |
 | i1 embedding substrate | Built (2026-08-04): `src/embed.js`, nominate-only, flat JSONL cache, one-failure degrade to oracle-only. Gate unfalsifiable as written — s9's membership dissolved under stricter detection; re-anchored to i2 calibration and i3 minSize-2. Found while gating: the v0 hand-audit corpus was never persisted to disk — i2 rebuilds it as a labeled file before it can score anything |
-| i2 cascade calibration | Harness built (2026-08-04): `limbic calibrate` — stratified corpus sampling (106 items on this history), κ-first scoring, fresh-cache shuffled repeat runs. Gate blocked on the only honest input: the user's hand labels. κ and per-label P/R publish here after a labeling session |
+| i2 cascade calibration | **Measured (2026-08-04)**: deterministic cascade **κ 0.85, agreement 91%** on the 106-item corpus — per-label precision 0.87–1.00 corrective, recall: correction 1.00, fix_request 0.73, challenge 0.68 (soft critique is the measured ceiling). Oracle cascade κ 0.80–0.81 across 3 fresh-cache shuffled runs, inter-run κ 0.91–0.96: **consistent but adds no accuracy** — challenge-recall tuning or removal from replay is n1's call. Labels are Opus-reference annotations, independent of the Haiku oracle, provenance marked per item; overwrite any line and κ republishes |
 | i3 minSize-2 double confirmation | Built and benchmarked (2026-08-04): online retrodiction **4.3%** (6/138) — first non-zero. Gate's second half, zero wrong-rule audits, awaits the user's audit of the 6 hits |
 | i4 live pilot | Prepared: hooks tested (and resurrected — all three were silently dead on stdin), `limbic install` prints the block, `--predict` adds the opt-in Stop hook. The pilot clock starts when the user pastes the block |
 | i5 doctrine curator | Built (2026-08-04): `limbic curate` — accepted rules read against the user's CLAUDE.md, coverage judged by embedding+oracle, additions and retire-candidates printed, file never written. First live run proposed the one accepted rule; the gate (a rule landing by the user's hand) is the user's move |
+
+## Second iteration (2026-08-04, afternoon) — what worked, and does it work
+
+What worked, with the why attached:
+
+- **Research before code, again.** The detection sprint ([RESEARCH.md](RESEARCH.md))
+  paid for itself twice: the validation pass came straight from a published
+  pipeline's 53.9% first-pass survival rate, and the behavioral layer's 3.5%
+  interrupt rate landed inside SWE-chat's published 3.3–6.0% — the design was
+  externally corroborated before it ran.
+- **Tests as resurrection.** The first hook test ever written found all three
+  hooks dead on arrival (stdin read that node's promises API refuses, swallowed by
+  the catch). An untested "built" was a fiction; the test made it true.
+- **The validation pass bites.** 33% of oracle positives refuted on real history;
+  max chain 12 → 5. Detection got sharper and admitted it found less.
+- **Double confirmation broke the zero.** Requiring embedding AND oracle on
+  pair-clusters took online retrodiction from 0.0% to 4.3% — the first non-zero —
+  without readmitting the blobs that inflated 20.8%.
+- **Calibration replaced belief with κ.** Deterministic cascade κ 0.85/91% on a
+  106-item corpus; the oracle layer proved consistent (inter-run κ 0.91–0.96) and
+  flat (κ 0.80–0.81) — an honest "adds nothing yet" no amount of architecture
+  enthusiasm survives. The corpus also convicted the rephrase detector's only two
+  firings as verbatim retries after infra errors; fixed same day, κ 0.82 → 0.85.
+- **The curator closed the loop shape.** Accepted rule → proposed CLAUDE.md line,
+  print-only. The endgame (feed the file the user already maintains) now has a
+  working end.
+
+**Does it work?** Three answers, separately honest. As a *measurement instrument*:
+yes, proven — κ 0.85 detection, auditable cues end to end, benchmarks that refuse
+flattery. As a *deduction engine*: mechanically yes, thinly in practice — rule
+supply is real but small (1 accepted, 2 double-confirmed pairs proposed), and the
+4.3% rests on cached verdicts and awaits the wrong-rule audit. As a *memory that
+prevents corrections*: unproven — nothing has been injected into a live session
+yet; that is n2, and it starts with a paste. The strongest evidence remains
+convergence: the dream pass re-deriving doctrine the user already keeps, and the
+curator recognizing it.
+
+Forward stages and exploration areas: [ROADMAP.md](ROADMAP.md).
 
 ## Sources
 
