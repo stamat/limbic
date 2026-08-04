@@ -83,6 +83,21 @@ All notable changes to limbic are documented here. The format follows
   runs on fresh caches with shuffled order so cached verdicts and fixed
   positions cannot fake consistency.
 
+- **i3 pair rules, double-confirmed**: minSize-2 clusters are admitted only when
+  embedding floor AND oracle yes agree on the pair — either signal alone still
+  needs three members. Online retrodiction moved 0.0% → **4.3%** (6 of 138),
+  the first non-zero in the project's history; the six hits await the human
+  wrong-rule audit. Two pair-rules proposed (keyboard focusability, preview
+  overflow). The old "lexical pair survives an unanswered oracle" guarantee
+  is replaced at size two, deliberately and loudly — its test now asserts the
+  new spec.
+- **i5 doctrine curator** (`limbic curate`): reads accepted rules against the
+  CLAUDE.md the user already maintains and prints — never writes — a proposal:
+  additions the doctrine lacks, "already covered by your hand" verdicts for
+  rules it keeps (embeddings nominate the match, oracle confirms it). Doubt
+  proposes rather than drops; the last hand is the user's. `limbic install
+  --predict` completes i4 prep by printing the opt-in Stop hook.
+
 ### Fixed
 
 - **All three hooks were dead on arrival**: they read stdin with the promises

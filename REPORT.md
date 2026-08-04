@@ -127,6 +127,7 @@ behind i0 is [RESEARCH.md](RESEARCH.md).
 | i2 cascade calibration | Harness built (2026-08-04): `limbic calibrate` — stratified corpus sampling (106 items on this history), κ-first scoring, fresh-cache shuffled repeat runs. Gate blocked on the only honest input: the user's hand labels. κ and per-label P/R publish here after a labeling session |
 | i3 minSize-2 double confirmation | Built and benchmarked (2026-08-04): online retrodiction **4.3%** (6/138) — first non-zero. Gate's second half, zero wrong-rule audits, awaits the user's audit of the 6 hits |
 | i4 live pilot | Prepared: hooks tested (and resurrected — all three were silently dead on stdin), `limbic install` prints the block, `--predict` adds the opt-in Stop hook. The pilot clock starts when the user pastes the block |
+| i5 doctrine curator | Built (2026-08-04): `limbic curate` — accepted rules read against the user's CLAUDE.md, coverage judged by embedding+oracle, additions and retire-candidates printed, file never written. First live run proposed the one accepted rule; the gate (a rule landing by the user's hand) is the user's move |
 
 ## Sources
 

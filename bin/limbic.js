@@ -40,6 +40,11 @@ usage:
       per-label precision/recall; --llm adds N repeat runs on fresh caches
       with shuffled order — inter-run κ is the consistency number.
 
+  limbic curate [--claude-md FILE] [--llm]
+      Read accepted rules against the CLAUDE.md you already maintain and
+      print a proposal: additions it lacks, rules it already covers by hand.
+      Prints only — the file is yours to edit.
+
   limbic install [--predict]
       Print the hooks block for ~/.claude/settings.json — never edits it.
       --predict includes the opt-in Stop hook (one Haiku call per turn).
@@ -203,6 +208,45 @@ if (cmd === 'replay') {
       for (const w of det.wrong.slice(0, 5)) console.log(`  human=${w.human} got=${w.got}  "${w.text}"`)
     }
   }
+} else if (cmd === 'curate') {
+  const { readFile } = await import('node:fs/promises')
+  const { listRules } = await import('../src/rules.js')
+  const { curate } = await import('../src/curate.js')
+  const doctrinePath = flag(args, '--claude-md', join(homedir(), '.claude', 'CLAUDE.md'))
+  const accepted = (await listRules()).filter(r => r.meta.status === 'accepted')
+  if (!accepted.length) {
+    console.error('no accepted rules to curate — review proposals with `limbic rules` first')
+    process.exit(1)
+  }
+  let doctrine
+  try {
+    doctrine = await readFile(doctrinePath, 'utf8')
+  } catch {
+    console.error(`cannot read ${doctrinePath} — pass your doctrine file with --claude-md`)
+    process.exit(1)
+  }
+  const oracle = await makeOracle()
+  const embedder = await makeEmbedder()
+  const rules = accepted.map(r => ({
+    file: r.file,
+    size: Number(r.meta.size ?? 0),
+    statement: r.body.split('## Evidence')[0].replace('## Proposed rule', '').trim()
+  }))
+  const { additions, covered, doctrineLines } = await curate({ rules, doctrine, oracle, embedder })
+  console.log(`doctrine: ${doctrinePath} (${doctrineLines} candidate lines)  accepted rules: ${rules.length}\n`)
+  if (covered.length) {
+    console.log('already covered by your hand — consider retiring the rule:')
+    for (const c of covered) console.log(`  ~ ${c.rule.statement.slice(0, 70)}\n    ≈ "${c.line.slice(0, 70)}" (cos ${c.cos.toFixed(2)})`)
+    console.log('')
+  }
+  if (additions.length) {
+    console.log('proposed additions — paste where they belong, reword freely:\n')
+    for (const a of additions) console.log(`- ${a.statement} _(deduced from ${a.size} corrections, ${a.file})_`)
+    console.log('')
+  }
+  if (!embedder || !oracle) console.log('(no --llm: coverage unchecked, every rule proposed — the human judges)')
+  console.log('limbic never edits your doctrine — the last hand is yours.')
+  oracleReport(oracle, embedder)
 } else if (cmd === 'install') {
   // Print-only, deliberately: limbic never edits your settings.json — a
   // memory tool that modifies its host's configuration crosses the same
