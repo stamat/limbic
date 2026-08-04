@@ -27,11 +27,18 @@ export function jaccard (a, b) {
   return inter / (a.size + b.size - inter)
 }
 
+// The similarity constants live beside the similarity they parameterize —
+// AUTO is the lexical overlap above which two texts pair with no oracle;
+// FLOOR is the weakest overlap worth spending a cached oracle question on.
+// Every module imports these; a second 0.25 anywhere is a drift bug.
+export const AUTO = 0.25
+export const FLOOR = 0.06
+
 // Greedy single-link: an event joins the first cluster it clears the
 // threshold against. Same project is not required — a mistake repeating
 // across projects is a stronger rule, not a different one — but it is
 // recorded, so the dream pass can scope the rule it proposes.
-export function cluster (events, { threshold = 0.25, minSize = 3 } = {}) {
+export function cluster (events, { threshold = AUTO, minSize = 3 } = {}) {
   const items = events.map(e => ({ event: e, toks: tokens(e.text) }))
   const clusters = []
   for (const item of items) {

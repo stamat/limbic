@@ -1,8 +1,6 @@
-import { cluster, tokens, jaccard } from './cluster.js'
+import { cluster, tokens, jaccard, AUTO, FLOOR } from './cluster.js'
 import { semanticClusters } from './semantic.js'
 import { CORRECTIVE } from './surprise.js'
-
-const FLOOR = 0.06
 
 // The thesis benchmark: rules deduced from the first half of history, scored
 // against corrections in the second. "Preventable" means a later correction
@@ -10,7 +8,7 @@ const FLOOR = 0.06
 // thresholds, same oracle, no special pleading. Chronology is per-record
 // timestamp order, not per-project: rules are allowed to transfer across
 // projects because that is precisely the claim being tested.
-export async function retrodict (records, { threshold = 0.25, minSize = 3, oracle = null } = {}) {
+export async function retrodict (records, { threshold = AUTO, minSize = 3, oracle = null } = {}) {
   const corrective = records
     .filter(r => CORRECTIVE.has(r.label) && r.ts)
     .sort((a, b) => a.ts.localeCompare(b.ts))
@@ -77,7 +75,7 @@ export async function retrodictOnline (records, { minSize = 3, oracle = null } =
     scored++
     const f = corrective[i]
     const ft = tokens(f.text)
-    let hit = clusters.find(c => c.events.some(e => jaccard(ft, tokens(e.text)) >= 0.25))
+    let hit = clusters.find(c => c.events.some(e => jaccard(ft, tokens(e.text)) >= AUTO))
     if (!hit && oracle) {
       for (const c of clusters) {
         const members = c.events.filter(e => jaccard(ft, tokens(e.text)) >= FLOOR)

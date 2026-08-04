@@ -1,4 +1,4 @@
-import { tokens, jaccard } from './cluster.js'
+import { tokens, jaccard, AUTO, FLOOR } from './cluster.js'
 
 // Semantic clustering: lexical similarity nominates candidate pairs, the
 // oracle confirms them, union-find merges confirmed pairs into clusters.
@@ -7,8 +7,6 @@ import { tokens, jaccard } from './cluster.js'
 // replayable). The floor exists because asking the oracle about every pair is
 // O(n²) plan-budget; below it, two corrections share so little language that
 // a shared rule is implausible.
-const AUTO = 0.25
-const FLOOR = 0.06
 
 // A cluster held together only by imperative glue is a category, not a
 // mistake: "fix it" and "fix all" share a verb, never a lesson. Clusters
