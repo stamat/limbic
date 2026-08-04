@@ -3,8 +3,9 @@
 How to run limbic end to end: the commands in working order, every file it
 writes, what each label means (you will hand-label against these), what
 spends money, and what happens when a piece is missing. The pitch and the
-numbers live in [README.md](README.md) and [REPORT.md](REPORT.md); this is
-the operations manual.
+numbers live in [README.md](README.md) and [REPORT.md](REPORT.md); why any
+verdict is believed lives in [DEDUCTION.md](DEDUCTION.md); this is the
+operations manual.
 
 ## Quickstart
 

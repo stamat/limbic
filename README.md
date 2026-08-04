@@ -58,7 +58,9 @@ Live hooks exist and are opt-in by hand: `hooks/classify.js` ledgers every promp
 only* at session start, `hooks/predict.js` (add it yourself, it costs one Haiku call
 per turn) predicts your next message so the following prompt scores hit or miss.
 Day-one results, defects found and the improvement plan: [REPORT.md](REPORT.md).
-Detection research behind the next stage: [RESEARCH.md](RESEARCH.md).
+Detection research behind the next stage: [RESEARCH.md](RESEARCH.md). How a
+claim earns belief at every hop, and the failures that priced each rule:
+[DEDUCTION.md](DEDUCTION.md).
 
 Everything runs locally. Nothing leaves this machine; the ledger (`~/.limbic/`) stores
 labels, scores and a bounded 300-character excerpt per prompt — it is not a transcript

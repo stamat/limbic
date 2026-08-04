@@ -105,6 +105,11 @@ All notable changes to limbic are documented here. The format follows
   0.68). Oracle cascade across 3 fresh-cache shuffled runs: κ 0.80–0.81,
   inter-run κ 0.91–0.96 — consistent, order-stable, and currently adding no
   accuracy over the deterministic layers; its tuning-or-removal is n1's call.
+- **DEDUCTION.md** — how limbic decides something is true: the principles
+  (precision priced first, two witnesses per promotion, doubt refuses to promote,
+  killable numbers), the chain-of-custody table from prompt text to published
+  number with each hop's required evidence and veto, the case law each rule was
+  paid for by, and what cannot be deduced yet.
 - **GUIDE.md** — the operations manual: commands in working order, the cascade,
   label definitions for hand-labeling, every file on disk, costs and caps, the
   degrade matrix. **ROADMAP.md** resumes ownership of what's next: n-stages
