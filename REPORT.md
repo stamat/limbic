@@ -15,6 +15,7 @@ the research says to do about it — numbers first, story second.
 | + audit hardening | 154 (12.6%) | **0.0%** half-split, **0.0%** online | average-linkage, generic guard, design-question fix |
 | + i0 detection cascade | 141 (11.1%) + 65 behavioral | **0.0%** both modes | validation refuted 33% of oracle positives; max chain 12→5; behavioral events (44 interrupts, 13 denials, 8 self-confessions) and rephrase detection ledgered; half-split yields 0 rules at minSize 3 — supply starves harder, i1+i3 carry it |
 | + i1 embeddings | 141 (11.1%) | **0.0%** half-split | substrate live (nomic-embed-text via ollama, flat JSONL cache): 422 pairs nominated — ~330 beyond the lexical floor — 52 confirmed, 2 clusters proposed. The s9 gate went moot: the saga's members were refuted upstream by oracle v2 + validation, and whether that refutation was right is precisely i2's calibration question |
+| + i3 double-confirmed pairs | 141 (11.1%) | half-split 0.0%; **online 4.3%** (6 of 138) | the first non-zero in the project's history. minSize 2 admitted only when embedding and oracle both confirm the pair; two pair-rules proposed (keyboard focusability, preview overflow). The 6 hits await the human wrong-rule audit, and the verdicts behind them were fully cached — fresh-cache consistency is what i2's repeat protocol measures |
 
 The 20.8% → 0.0% collapse is the day's most important result: every point of it was a
 measurement artifact, and the pipeline now refuses to flatter itself. The cost surfaced
@@ -124,6 +125,8 @@ behind i0 is [RESEARCH.md](RESEARCH.md).
 | i0 detection hardening | Built and benchmarked (2026-08-04): behavioral layer, rephrase layer, validation layer live; tests green. The gate's κ half waits on i2 — precision against the hand corpus is measured there, not claimed here |
 | i1 embedding substrate | Built (2026-08-04): `src/embed.js`, nominate-only, flat JSONL cache, one-failure degrade to oracle-only. Gate unfalsifiable as written — s9's membership dissolved under stricter detection; re-anchored to i2 calibration and i3 minSize-2. Found while gating: the v0 hand-audit corpus was never persisted to disk — i2 rebuilds it as a labeled file before it can score anything |
 | i2 cascade calibration | Harness built (2026-08-04): `limbic calibrate` — stratified corpus sampling (106 items on this history), κ-first scoring, fresh-cache shuffled repeat runs. Gate blocked on the only honest input: the user's hand labels. κ and per-label P/R publish here after a labeling session |
+| i3 minSize-2 double confirmation | Built and benchmarked (2026-08-04): online retrodiction **4.3%** (6/138) — first non-zero. Gate's second half, zero wrong-rule audits, awaits the user's audit of the 6 hits |
+| i4 live pilot | Prepared: hooks tested (and resurrected — all three were silently dead on stdin), `limbic install` prints the block, `--predict` adds the opt-in Stop hook. The pilot clock starts when the user pastes the block |
 
 ## Sources
 

@@ -40,8 +40,9 @@ usage:
       per-label precision/recall; --llm adds N repeat runs on fresh caches
       with shuffled order — inter-run κ is the consistency number.
 
-  limbic install
+  limbic install [--predict]
       Print the hooks block for ~/.claude/settings.json — never edits it.
+      --predict includes the opt-in Stop hook (one Haiku call per turn).
 
 Everything runs locally; only --llm ever calls a model. --llm accepts
 --max-calls N (default 60) — the per-run cap on claude invocations.`
@@ -213,8 +214,14 @@ if (cmd === 'replay') {
     UserPromptSubmit: [{ hooks: [{ type: 'command', command: `node "${jn(root, 'hooks', 'classify.js')}"`, timeout: 5 }] }],
     SessionStart: [{ hooks: [{ type: 'command', command: `node "${jn(root, 'hooks', 'inject.js')}"`, timeout: 5 }] }]
   }
+  if (args.includes('--predict')) {
+    hooks.Stop = [{ hooks: [{ type: 'command', command: `node "${jn(root, 'hooks', 'predict.js')}"`, timeout: 90 }] }]
+  }
   console.log('add to ~/.claude/settings.json under "hooks":\n')
   console.log(JSON.stringify(hooks, null, 2))
+  if (!args.includes('--predict')) {
+    console.log('\nopt-in prediction (one Haiku call per turn): limbic install --predict')
+  }
 } else {
   console.log(HELP)
   process.exit(cmd ? 1 : 0)
