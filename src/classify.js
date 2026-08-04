@@ -62,8 +62,11 @@ const ACCEPT = [
 // Diagnostic questions wear corrective words without corrective intent —
 // "does poops have the same issue?" is curiosity, not a report. The guard
 // only covers interrogative openers that the audit caught misfiring; "why"
-// stays out of it because why-questions are the challenge class itself.
-const DIAGNOSTIC_OPENER = /^(does|do|is|are|can|could|should|would|what|where|when|how)\b/i
+// stays out of it because why-questions are the challenge class itself, and
+// "what happened" is exempted or the guard would eat the fix_request cue
+// that phrase exists to fire — a prompt-opening "what happened to X" is a
+// report about delivered work, not curiosity.
+const DIAGNOSTIC_OPENER = /^(does|do|is|are|can|could|should|would|what(?! happened)|where|when|how)\b/i
 
 const LABELS = [
   ['correction', CORRECTION],

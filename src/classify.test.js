@@ -25,6 +25,11 @@ test('"still broken" after delivery is a fix_request', () => {
   assert.equal(classify('the dropdown is still broken on mobile').label, 'fix_request')
 })
 
+test('"what happened to X" at the prompt start survives the diagnostic guard', () => {
+  assert.equal(classify('what happened with the navbar fix?').label, 'fix_request',
+    'the guard must not eat the cue this phrase exists to fire')
+})
+
 test('"you missed" reads as a correction wherever it sits', () => {
   assert.equal(classify('I think you missed the second case').label, 'correction')
 })
