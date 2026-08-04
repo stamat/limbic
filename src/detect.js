@@ -9,6 +9,10 @@ import { tokens, jaccard } from './cluster.js'
 // hand corpus earns it.
 const THRESHOLD = 0.5
 const MIN_TOKENS = 4
+// A rephrase is the same ask REWORDED. A verbatim resend is a retry after an
+// infrastructure failure (expired auth, spend limit) — both corpus instances
+// of near-identical neighbours were exactly that, 0-for-2 on the hand audit.
+const VERBATIM = 0.95
 
 export function markRephrases (labeled, { threshold = THRESHOLD, minTokens = MIN_TOKENS } = {}) {
   for (let i = 1; i < labeled.length; i++) {
@@ -19,7 +23,7 @@ export function markRephrases (labeled, { threshold = THRESHOLD, minTokens = MIN
     const b = tokens(labeled[i].text)
     if (a.size < minTokens || b.size < minTokens) continue
     const sim = jaccard(a, b)
-    if (sim >= threshold) {
+    if (sim >= threshold && sim < VERBATIM) {
       labeled[i] = { ...labeled[i], label: 'rephrase', cue: `rephrase:${sim.toFixed(2)}` }
     }
   }

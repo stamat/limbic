@@ -40,6 +40,13 @@ test('a prompt another layer already labeled keeps its label and cue', () => {
   assert.equal(out[1].cue, 'existing-cue')
 })
 
+test('a verbatim resend is a retry, not a rephrase', () => {
+  const text = 'assess the value of our potential project with benchmarks'
+  const out = markRephrases([p(text), p(text)])
+  assert.equal(out[1].label, 'neutral',
+    'identical text follows an infrastructure failure, not a missed delivery')
+})
+
 test('unrelated consecutive prompts stay neutral', () => {
   const out = markRephrases([
     p('make the sidebar sticky on scroll for desktop'),
