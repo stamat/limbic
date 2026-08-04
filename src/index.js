@@ -1,6 +1,7 @@
 export { replay } from './replay.js'
 export { classify } from './classify.js'
 export { markRephrases } from './detect.js'
+export { Embedder, cosine, EMB_FLOOR, defaultEmbedCachePath } from './embed.js'
 export { momentary, ema, scoreSession, CORRECTIVE, BEHAVIORAL } from './surprise.js'
 export { parseSession, listSessionFiles, isHumanPrompt, behavioralEvent, selfCorrection } from './transcript.js'
 export { readLedger, defaultLedgerPath } from './ledger.js'

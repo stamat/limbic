@@ -33,8 +33,10 @@ the previous turn's content. Cue expansion from the audited classes (why-challen
 their own `challenge` label, typo variants, restore-to-previous, a diagnostic-question
 guard) lifted corrective to 3.5% with max chain 4 — the gate floor clears. The ceiling
 finding pulls the turn-context Haiku classifier from v0.3 into v0.2 as a measured
-necessity, not a convenience. Judged examples live as classifier tests; the full audit
-corpus stays local (`~/.limbic/`) — real prompt text does not enter a public repo.
+necessity, not a convenience. Judged examples live as classifier tests; the audit
+itself was worked through by hand but never persisted as a file — found during i1,
+recorded honestly here. i2 rebuilds it as a labeled corpus under `~/.limbic/corpus/`;
+real prompt text stays out of the public repo either way.
 
 ## v0.2 — the dream pass (`limbic dream`)
 

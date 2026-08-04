@@ -51,8 +51,23 @@ async function makeOracle () {
   return new Oracle({ maxCalls: Number(flag(args, '--max-calls', 60)) })
 }
 
-function oracleReport (oracle) {
+// The embedder rides along with --llm: embeddings only nominate pairs, the
+// oracle confirms them — vectors without an oracle would have no one to ask.
+// A dead or missing ollama costs one failed call and the run degrades to
+// oracle-only, stated in the report line.
+async function makeEmbedder () {
+  if (!args.includes('--llm')) return null
+  const { Embedder } = await import('../src/embed.js')
+  return new Embedder()
+}
+
+function oracleReport (oracle, embedder) {
   if (oracle) console.log(`oracle: ${oracle.calls} calls, ${oracle.cacheHits} cache hits`)
+  if (embedder) {
+    console.log(embedder.available
+      ? `embeddings: ${embedder.calls} calls, ${embedder.cacheHits} cache hits`
+      : 'embeddings: ollama unavailable — degraded to oracle-only')
+  }
 }
 
 if (cmd === 'replay') {
@@ -76,15 +91,17 @@ if (cmd === 'replay') {
 } else if (cmd === 'dream') {
   const { dream } = await import('../src/dream.js')
   const oracle = await makeOracle()
+  const embedder = await makeEmbedder()
   const records = await readLedger(flag(args, '--ledger', defaultLedgerPath()))
   const summary = await dream({
     records,
     useLlm: args.includes('--llm'),
     oracle,
+    embedder,
     minSize: Number(flag(args, '--min', 3))
   })
   console.log(`corrective ${summary.corrective}  clusters ${summary.clusters}  (pairs asked ${summary.asked}, confirmed ${summary.confirmed})  proposed ${summary.proposed}  already known ${summary.skippedKnown}`)
-  oracleReport(oracle)
+  oracleReport(oracle, embedder)
   if (summary.proposed) console.log('review with: limbic rules')
 } else if (cmd === 'rules') {
   const { listRules } = await import('../src/rules.js')
@@ -109,17 +126,18 @@ if (cmd === 'replay') {
 } else if (cmd === 'retrodict') {
   const { retrodict, retrodictOnline } = await import('../src/retrodict.js')
   const oracle = await makeOracle()
+  const embedder = await makeEmbedder()
   const records = await readLedger(flag(args, '--ledger', defaultLedgerPath()))
   if (args.includes('--online')) {
-    const r = await retrodictOnline(records, { oracle })
+    const r = await retrodictOnline(records, { oracle, embedder })
     console.log(`online: ${r.scored} scored of ${r.events} corrective; preventable ${r.preventable} (${(r.rate * 100).toFixed(1)}%)`)
     for (const h of r.hits) console.log(`  ~ [${h.signature}] ${h.text}`)
   } else {
-    const r = await retrodict(records, { oracle })
+    const r = await retrodict(records, { oracle, embedder })
     console.log(`past ${r.pastEvents} events → ${r.rules} rules; future ${r.futureEvents} events, preventable ${r.preventable} (${(r.rate * 100).toFixed(1)}%)`)
     for (const h of r.hits) console.log(`  ~ [${h.signature}] ${h.text}`)
   }
-  oracleReport(oracle)
+  oracleReport(oracle, embedder)
 } else if (cmd === 'install') {
   // Print-only, deliberately: limbic never edits your settings.json — a
   // memory tool that modifies its host's configuration crosses the same

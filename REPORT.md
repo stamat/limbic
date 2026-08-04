@@ -14,6 +14,7 @@ the research says to do about it — numbers first, story second.
 | + oracle, uncapped | 201 (16.5%) | 20.8% | **inflated** — union-find blob, imperative glue |
 | + audit hardening | 154 (12.6%) | **0.0%** half-split, **0.0%** online | average-linkage, generic guard, design-question fix |
 | + i0 detection cascade | 141 (11.1%) + 65 behavioral | **0.0%** both modes | validation refuted 33% of oracle positives; max chain 12→5; behavioral events (44 interrupts, 13 denials, 8 self-confessions) and rephrase detection ledgered; half-split yields 0 rules at minSize 3 — supply starves harder, i1+i3 carry it |
+| + i1 embeddings | 141 (11.1%) | **0.0%** half-split | substrate live (nomic-embed-text via ollama, flat JSONL cache): 422 pairs nominated — ~330 beyond the lexical floor — 52 confirmed, 2 clusters proposed. The s9 gate went moot: the saga's members were refuted upstream by oracle v2 + validation, and whether that refutation was right is precisely i2's calibration question |
 
 The 20.8% → 0.0% collapse is the day's most important result: every point of it was a
 measurement artifact, and the pipeline now refuses to flatter itself. The cost surfaced
@@ -121,6 +122,7 @@ behind i0 is [RESEARCH.md](RESEARCH.md).
 | v0.4 prediction | Built opt-in (`hooks/predict.js`), zero live data, unproven |
 | v1 mechanization | Skipped: one accepted rule is no supply; revisit after i3 |
 | i0 detection hardening | Built and benchmarked (2026-08-04): behavioral layer, rephrase layer, validation layer live; tests green. The gate's κ half waits on i2 — precision against the hand corpus is measured there, not claimed here |
+| i1 embedding substrate | Built (2026-08-04): `src/embed.js`, nominate-only, flat JSONL cache, one-failure degrade to oracle-only. Gate unfalsifiable as written — s9's membership dissolved under stricter detection; re-anchored to i2 calibration and i3 minSize-2. Found while gating: the v0 hand-audit corpus was never persisted to disk — i2 rebuilds it as a labeled file before it can score anything |
 
 ## Sources
 

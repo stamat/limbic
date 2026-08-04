@@ -35,11 +35,11 @@ async function phrase (events, useLlm) {
   }
 }
 
-export async function dream ({ records, dir = rulesDir(), useLlm = false, oracle = null, minSize = 3, threshold = 0.25 }) {
+export async function dream ({ records, dir = rulesDir(), useLlm = false, oracle = null, embedder = null, minSize = 3, threshold = 0.25 }) {
   const corrective = records.filter(r => CORRECTIVE.has(r.label))
   let clusters, asked = 0, confirmed = 0
   if (oracle) {
-    ({ clusters, asked, confirmed } = await semanticClusters(corrective, oracle, { minSize }))
+    ({ clusters, asked, confirmed } = await semanticClusters(corrective, oracle, { minSize, embedder }))
   } else {
     clusters = cluster(corrective, { minSize, threshold })
   }

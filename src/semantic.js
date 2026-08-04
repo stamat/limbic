@@ -1,4 +1,5 @@
 import { tokens, jaccard, AUTO, FLOOR } from './cluster.js'
+import { cosine, EMB_FLOOR } from './embed.js'
 
 // Semantic clustering: lexical similarity nominates candidate pairs, the
 // oracle confirms them, union-find merges confirmed pairs into clusters.
@@ -24,8 +25,13 @@ const GENERIC = new Set([
 // groups merge only when at least LINKAGE of their cross-pairs are confirmed.
 const LINKAGE = 0.6
 
-export async function semanticClusters (events, oracle, { minSize = 3 } = {}) {
+export async function semanticClusters (events, oracle, { minSize = 3, embedder = null } = {}) {
   const toks = events.map(e => tokens(e.text))
+  // Embeddings nominate what tokens cannot: a pair with zero lexical overlap
+  // still reaches the oracle when its cosine clears the embedding floor.
+  // Nomination widens the ask list, never the edge set — the oracle confirms
+  // every sub-AUTO pair, embedding-nominated or not.
+  const vecs = embedder ? await embedder.embed(events.map(e => e.text)) : []
   const edges = new Set()
   const edge = (i, j) => i < j ? `${i}:${j}` : `${j}:${i}`
 
@@ -33,8 +39,12 @@ export async function semanticClusters (events, oracle, { minSize = 3 } = {}) {
   for (let i = 0; i < events.length; i++) {
     for (let j = i + 1; j < events.length; j++) {
       const sim = jaccard(toks[i], toks[j])
-      if (sim >= AUTO) edges.add(edge(i, j))
-      else if (sim >= FLOOR) ask.push({ i, j })
+      if (sim >= AUTO) {
+        edges.add(edge(i, j))
+        continue
+      }
+      const cos = vecs[i] && vecs[j] ? cosine(vecs[i], vecs[j]) : 0
+      if (sim >= FLOOR || cos >= EMB_FLOOR) ask.push({ i, j })
     }
   }
 
