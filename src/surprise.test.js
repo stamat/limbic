@@ -36,3 +36,8 @@ test('a session with no corrections carries zero surprise throughout', () => {
   const scored = scoreSession([{ label: 'neutral' }, { label: 'accept' }])
   for (const e of scored) assert.equal(e.surprise, 0)
 })
+
+test('a rephrase escalates the chain like any correction', () => {
+  const scored = scoreSession([{ label: 'correction' }, { label: 'rephrase' }])
+  assert.equal(scored[1].chain, 2, 'a wordless re-ask is still the fix not taking')
+})

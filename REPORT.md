@@ -13,6 +13,7 @@ the research says to do about it — numbers first, story second.
 | + oracle, capped | 106 (8.8%) | 7.5% | turn-context classification, semantic pairs |
 | + oracle, uncapped | 201 (16.5%) | 20.8% | **inflated** — union-find blob, imperative glue |
 | + audit hardening | 154 (12.6%) | **0.0%** half-split, **0.0%** online | average-linkage, generic guard, design-question fix |
+| + i0 detection cascade | 141 (11.1%) + 65 behavioral | **0.0%** both modes | validation refuted 33% of oracle positives; max chain 12→5; behavioral events (44 interrupts, 13 denials, 8 self-confessions) and rephrase detection ledgered; half-split yields 0 rules at minSize 3 — supply starves harder, i1+i3 carry it |
 
 The 20.8% → 0.0% collapse is the day's most important result: every point of it was a
 measurement artifact, and the pipeline now refuses to flatter itself. The cost surfaced
@@ -37,7 +38,10 @@ pairs, rarely as triples.
   affordable), version-keyed, recursion-guarded, degrades to deterministic. Zero
   incidents.
 - **The propose gate as measured filter.** Human accepted 1 of 7 rules — an acceptance
-  rate that is itself the strongest argument against auto-activation.
+  rate that is itself the strongest argument against auto-activation. The two rules
+  that re-derived existing CLAUDE.md doctrine were among the rejected: a rule already
+  kept by hand has nowhere to graduate to, which is exactly the dedup case the i5
+  curator exists for.
 - **Plain files everywhere.** Every artifact — ledger, rules, cache — is readable with
   `cat` and diffable; every audit in this report was a grep.
 
@@ -66,8 +70,10 @@ pairs, rarely as triples.
 
 ## What the research says ([sources below](#sources))
 
+Detection-specific research lives in its own report: [RESEARCH.md](RESEARCH.md).
+
 1. **Embeddings are the missing substrate.** Short-text clustering literature is
-   unambiguous: low word co-occurrence defeats token methods; LLM embeddings then
+   consistent: low word co-occurrence defeats token methods; LLM embeddings then
    conventional clustering is the recommended shape, with LLM-as-judge kept for
    validation, not primary grouping. Fits limbic as: optional local embeddings via
    ollama's HTTP API (localhost fetch, no package dependency, degrades honestly to
@@ -92,13 +98,17 @@ pairs, rarely as triples.
 
 ## Improvement roadmap (supersedes ROADMAP.md forward sections)
 
+Detection comes first — every downstream stage starves without it; the research pass
+behind i0 is [RESEARCH.md](RESEARCH.md).
+
 | Stage | What | Gate |
 |---|---|---|
+| i0 | Detection hardening: behavioral events from the transcript (interruptions, tool denials, plan rejections, mid-turn steering), repeat/rephrase detector, validation pass on positive oracle labels | cascade precision ≥ regex's 86% at ≥2× regex recall on the hand corpus |
 | i1 | Embedding substrate: ollama `nomic-embed-text` via localhost HTTP, cosine-candidate pairs, oracle confirms, linkage guards | s9 saga re-forms as one cluster; zero blobs on hand audit |
-| i2 | Classifier calibration: score oracle labels against the hand-labeled corpus, tune instruction, publish precision/recall in this report | oracle precision ≥ regex's 86% on held-out labels |
+| i2 | Cascade calibration: score every layer against the hand-labeled corpus — Cohen's κ, shuffled item order, ≥3 repeat runs — tune instructions, publish per-label precision/recall here | κ-corrected precision ≥ 86% on held-out labels, biases measured |
 | i3 | minSize 2 rules with double confirmation (embedding + oracle agree) | retrodict-online > 0 with zero wrong-rule audits |
-| i4 | Live pilot: hooks installed (user's hand, printed config), 2 weeks of live ledger, prediction hit-rate measured | correction rate on rule-covered classes drops; prediction hit-rate reported whatever it is |
-| i5 | CLAUDE.md graduation: accepted rules propose themselves as lines in the user's own doctrine file, diff shown, human applies | a deduced rule lands in CLAUDE.md by user's hand |
+| i4 | Live pilot: hooks installed (user's hand, printed config), 2 weeks of live ledger, prediction hit-rate measured. Deliberately weaker than ROADMAP's original v0.3 gate (4+ weeks A/B, ≥30% drop) — a first single-arm pilot; the A/B bar returns if it shows signal | correction rate on rule-covered classes drops; prediction hit-rate reported whatever it is |
+| i5 | Doctrine curation: accepted rules propose themselves as lines in the user's CLAUDE.md/AGENTS.md, and the curator reads the file back — proposing additions, flagging lines the ledger contradicts, deduplicating rules the user already keeps — diff shown, human applies | a deduced rule lands in CLAUDE.md by user's hand |
 
 ## Roadmap stage status
 
@@ -110,13 +120,9 @@ pairs, rarely as triples.
 | v0.3 live hooks | Built (`hooks/classify.js`, `hooks/inject.js`, `limbic install` prints config — never edits settings). Not installed, gate-pending |
 | v0.4 prediction | Built opt-in (`hooks/predict.js`), zero live data, unproven |
 | v1 mechanization | Skipped: one accepted rule is no supply; revisit after i3 |
+| i0 detection hardening | Built and benchmarked (2026-08-04): behavioral layer, rephrase layer, validation layer live; tests green. The gate's κ half waits on i2 — precision against the hand corpus is measured there, not claimed here |
 
 ## Sources
 
-- [Human-interpretable clustering of short text using LLMs](https://royalsocietypublishing.org/doi/10.1098/rsos.241692) — Royal Society Open Science
-- [Text clustering with LLM embeddings](https://dev.to/aimodels-fyi/text-clustering-with-llm-embeddings-3nma)
-- [BERTopic with local LLM labeling via Ollama](https://medium.com/data-science-collective/bertopic-with-local-llm-labeling-llama-cpp-ollama-a-practical-guide-45314e80d723)
-- [Letta: stateful agents, three-tier memory, RecoveryBench](https://www.zenml.io/llmops-database/building-stateful-ai-agents-with-in-context-learning-and-memory-management)
-- [Context management vs memory management](https://atlan.com/know/ai-agent/ai-agent-context/context-management-vs-memory-management-ai-agents/)
-- [State of AI agent memory 2026 (mem0)](https://mem0.ai/blog/state-of-ai-agent-memory-2026)
-- [Titans: surprise-gated memory](https://arxiv.org/abs/2501.00663) · [Reflexion](https://arxiv.org/abs/2303.11366) · [Evo-Memory](https://arxiv.org/pdf/2511.20857) · [RPMS](https://arxiv.org/abs/2603.17831)
+Annotated and categorized — summary, relevance, and how deeply each was read — in
+[SOURCES.md](SOURCES.md), the project's one source registry.

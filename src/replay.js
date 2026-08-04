@@ -1,5 +1,6 @@
 import { listSessionFiles, parseSession } from './transcript.js'
 import { classify } from './classify.js'
+import { markRephrases } from './detect.js'
 import { scoreSession } from './surprise.js'
 import { resetLedger, appendRecords, toRecord } from './ledger.js'
 
@@ -14,7 +15,7 @@ import { resetLedger, appendRecords, toRecord } from './ledger.js'
 // cross-session pass covers in a handful.
 export async function replay ({ projectsDir, ledgerPath, project = null, oracle = null }) {
   const files = await listSessionFiles(projectsDir, project)
-  const summary = { files: files.length, sessions: 0, prompts: 0, badLines: 0, records: 0, vanished: 0, oracleUpgrades: 0 }
+  const summary = { files: files.length, sessions: 0, prompts: 0, badLines: 0, records: 0, vanished: 0, oracleUpgrades: 0, oracleRefuted: 0, rephrases: 0, interrupts: 0, denials: 0, selfCorrections: 0 }
 
   const sessions = []
   for (const f of files) {
@@ -32,12 +33,15 @@ export async function replay ({ projectsDir, ledgerPath, project = null, oracle 
       throw err
     }
     summary.badLines += session.badLines
-    if (!session.prompts.length) continue
+    // A session with only behavioral events still carries signal — an Esc in
+    // a session whose prompts were all slash-command plumbing must not vanish.
+    if (!session.prompts.length && !session.behavioral.length) continue
     summary.sessions++
     summary.prompts += session.prompts.length
     sessions.push({
       project: f.project,
       sessionId: session.sessionId ?? session.file,
+      behavioral: session.behavioral,
       labeled: session.prompts.map(p => ({ ...p, ...classify(p.text) }))
     })
   }
@@ -53,9 +57,19 @@ export async function replay ({ projectsDir, ledgerPath, project = null, oracle 
       })
     }
     const verdicts = await oracle.classify(backlog)
+    const upgraded = []
     backlog.forEach((b, n) => {
-      if (verdicts[n] && verdicts[n] !== 'neutral') {
-        b.s.labeled[b.i] = { ...b.s.labeled[b.i], label: verdicts[n], cue: 'oracle' }
+      if (verdicts[n] && verdicts[n] !== 'neutral') upgraded.push({ b, label: verdicts[n] })
+    })
+    // Every positive verdict faces a second, refutation-phrased pass before it
+    // sticks — a refuted upgrade stays neutral with the cue recording why.
+    const checks = await oracle.validate(upgraded.map(({ b }) => ({ context: b.context, text: b.text })))
+    upgraded.forEach(({ b, label }, n) => {
+      if (checks[n] === false) {
+        b.s.labeled[b.i] = { ...b.s.labeled[b.i], cue: 'oracle-refuted' }
+        summary.oracleRefuted++
+      } else {
+        b.s.labeled[b.i] = { ...b.s.labeled[b.i], label, cue: 'oracle' }
         summary.oracleUpgrades++
       }
     })
@@ -63,7 +77,17 @@ export async function replay ({ projectsDir, ledgerPath, project = null, oracle 
 
   await resetLedger(ledgerPath)
   for (const s of sessions) {
-    const records = scoreSession(s.labeled).map(e => toRecord(e, { project: s.project, sessionId: s.sessionId }))
+    markRephrases(s.labeled)
+    summary.rephrases += s.labeled.filter(l => l.label === 'rephrase').length
+    const meta = { project: s.project, sessionId: s.sessionId }
+    const scored = scoreSession(s.labeled).map(e => toRecord(e, meta))
+    // Behavioral events ride the same ledger with zero surprise: they are not
+    // prompts, so they pass the chain untouched and merge back in by time.
+    const behavioral = s.behavioral.map(b => {
+      summary[{ interrupt: 'interrupts', denial: 'denials', self_correction: 'selfCorrections' }[b.kind]]++
+      return toRecord({ ts: b.ts, label: b.kind, cue: b.cue ?? b.kind, chain: 0, surprise: 0, trace: null, gitBranch: b.gitBranch, text: b.excerpt ?? '' }, meta)
+    })
+    const records = [...scored, ...behavioral].sort((a, b) => String(a.ts ?? '').localeCompare(String(b.ts ?? '')))
     await appendRecords(ledgerPath, records)
     summary.records += records.length
   }

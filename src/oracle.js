@@ -23,6 +23,7 @@ const TIMEOUT = 120000
 // cache poisoning — the first audit nearly shipped it.
 const CLASSIFY_V = 2
 const PAIRS_V = 1
+const VALIDATE_V = 1
 
 export function defaultCachePath () {
   return join(homedir(), '.limbic', 'cache', 'oracle.jsonl')
@@ -102,6 +103,49 @@ export class Oracle {
       for (let n = 0; n < batch.length; n++) {
         out[batch[n].i] = labels[n]
         await this.remember(batch[n].key, labels[n])
+      }
+    }
+    return out
+  }
+
+  // items: [{ context, text }] → true (label stands) / false (refuted) / null.
+  // The validation pass exists because one-pass LLM extraction runs ~50% false
+  // positives in published pipelines (RESEARCH.md): every positive classify
+  // verdict gets a second, refutation-phrased look. Positives only, so the
+  // cost is bounded by the corrective rate, not the prompt count. null (cap,
+  // failure) keeps the label — validation unavailable is not refutation.
+  async validate (items) {
+    if (process.env.LIMBIC_ORACLE) return items.map(() => null)
+    if (this.cache === null) await this.loadCache()
+    const out = new Array(items.length).fill(null)
+    const pending = []
+    items.forEach((item, i) => {
+      const key = `v${VALIDATE_V}:` + hash(`${item.context ?? ''}\n${item.text}`)
+      if (this.cache.has(key)) {
+        out[i] = this.cache.get(key)
+        this.cacheHits++
+      } else {
+        pending.push({ i, key, item })
+      }
+    })
+
+    for (let b = 0; b < pending.length; b += BATCH) {
+      if (this.calls >= this.maxCalls) break
+      const batch = pending.slice(b, b + BATCH)
+      const prompt = [
+        'Each item: PREV is what an AI coding agent last said or did; USER is the user\'s reply, provisionally labeled a correction or complaint about that prior work.',
+        'Confirm or refute each label. yes = USER genuinely corrects the agent, reports its work broken, or pushes back on it. no = anything else: a new task, a question, information, thinking aloud.',
+        'Be strict — when in doubt, no.',
+        `Reply with ONLY a JSON array of ${batch.length} strings, "yes" or "no", in order.`,
+        '',
+        ...batch.map(({ item }, n) => `#${n} PREV: ${(item.context ?? '(none)').slice(0, 250)}\n#${n} USER: ${item.text.slice(0, 250)}\n`)
+      ].join('\n')
+      const answers = await this.ask(prompt, batch.length, ['yes', 'no'])
+      if (!answers) continue
+      for (let n = 0; n < batch.length; n++) {
+        const v = answers[n] === 'yes'
+        out[batch[n].i] = v
+        await this.remember(batch[n].key, v)
       }
     }
     return out

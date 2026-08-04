@@ -1,7 +1,7 @@
 import { cluster, tokens, jaccard } from './cluster.js'
 import { semanticClusters } from './semantic.js'
+import { CORRECTIVE } from './surprise.js'
 
-const CORRECTIVE = new Set(['correction', 'fix_request', 'challenge'])
 const FLOOR = 0.06
 
 // The thesis benchmark: rules deduced from the first half of history, scored

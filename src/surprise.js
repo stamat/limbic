@@ -14,7 +14,13 @@ export function ema (prev, value, alpha = 0.3) {
   return alpha * value + (1 - alpha) * prev
 }
 
-const CORRECTIVE = new Set(['correction', 'fix_request', 'challenge'])
+// The one home of the label taxonomy's scoring split — every module imports
+// from here or drifts. `rephrase` is corrective: a user re-asking the same
+// thing is reporting, wordlessly, that the delivery missed (the largest
+// feedback category in chat-log studies — RESEARCH.md). Behavioral events
+// are not prompts: recorded, counted, never chained or classified.
+export const CORRECTIVE = new Set(['correction', 'fix_request', 'challenge', 'rephrase'])
+export const BEHAVIORAL = new Set(['interrupt', 'denial', 'self_correction'])
 
 // Folds a session's labeled prompts into surprise-scored events.
 // Any non-corrective prompt resets the chain: chain measures an unbroken run

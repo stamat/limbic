@@ -4,9 +4,9 @@ import { cluster } from './cluster.js'
 import { semanticClusters } from './semantic.js'
 import { listRules, writeRule, rulesDir } from './rules.js'
 
-const exec = promisify(execFile)
+import { CORRECTIVE } from './surprise.js'
 
-const CORRECTIVE = new Set(['correction', 'fix_request', 'challenge'])
+const exec = promisify(execFile)
 // A dream run proposes at most this many rules: an inbox that scrolls is an
 // inbox that gets ignored, and Evo-Memory's finding stands — unbounded memory
 // growth degrades retrieval, human retrieval included.

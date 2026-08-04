@@ -8,6 +8,23 @@ All notable changes to limbic are documented here. The format follows
 
 ### Added
 
+- **RESEARCH.md** — correction-detection research report: what the field calls the
+  problem (other-initiated repair, implicit feedback, developer pushback), the
+  published numbers that transfer, this machine's own unread behavioral signal,
+  and the cascade architecture stage i0 builds.
+- **i0 detection hardening**, from that research. Behavioral events become
+  first-class ledger records with zero surprise: mid-turn interruptions (44 on real
+  history), tool denials (13; plan rejections arrive as the same message), and agent
+  self-confessions (8) — model output that gets its own label and can never
+  masquerade as a user correction. A deterministic repeat/rephrase detector
+  (`src/detect.js`) catches the largest published feedback category (2 at its
+  conservative 0.5 threshold). Every positive oracle verdict now faces a second,
+  refutation-phrased validation pass (`oracle.validate`, cached, version-keyed):
+  on real history it refuted 47 of 142 positives (33%), corrective settled at 141
+  (11.1%), and max chain fell 12 → 5 — the mislabeled-streak suspicion from the
+  second run's audit, confirmed and fixed. Retrodiction after all of it: still
+  0.0% both modes, and half-split now yields zero rules at minSize 3 — detection
+  got sharper, cluster supply starves harder; i1 and i3 carry that burden.
 - **Online retrodiction** (`limbic retrodict --online`): for every corrective event,
   was a covering cluster already deducible from what came before? Scored 0.0% on real
   history — the burst hypothesis fails in its strong form under the hardened

@@ -71,3 +71,63 @@ test('a slash command wrapper is plumbing, not a prompt', async () => {
   const session = await parseSession(file)
   assert.equal(session.prompts.length, 0)
 })
+
+test('an interruption marker becomes a behavioral event, never a prompt', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'limbic-'))
+  const file = join(dir, 's.jsonl')
+  const interrupt = (marker) => ({
+    type: 'user',
+    isSidechain: false,
+    message: { role: 'user', content: [{ type: 'text', text: marker }] },
+    timestamp: '2026-08-04T00:01:00Z',
+    sessionId: 's1'
+  })
+  await writeFile(file, [
+    JSON.stringify(human('build the widget')),
+    JSON.stringify(interrupt('[Request interrupted by user]')),
+    JSON.stringify(interrupt('[Request interrupted by user for tool use]'))
+  ].join('\n'))
+  const session = await parseSession(file)
+  assert.equal(session.prompts.length, 1, 'the marker carries no user words to classify')
+  assert.deepEqual(session.behavioral.map(b => b.kind), ['interrupt', 'interrupt'])
+})
+
+test('an agent confessing its own mistake is a self-correction event, work narration is not', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'limbic-'))
+  const file = join(dir, 's.jsonl')
+  const assistant = (text) => ({
+    type: 'assistant',
+    isSidechain: false,
+    message: { role: 'assistant', content: [{ type: 'text', text }] },
+    timestamp: '2026-08-04T00:03:00Z',
+    sessionId: 's1'
+  })
+  await writeFile(file, [
+    JSON.stringify(assistant('My mistake — the regex anchored on the wrong group. Fixed.')),
+    JSON.stringify(assistant('Let me fix the failing test next.')),
+    JSON.stringify(human('carry on'))
+  ].join('\n'))
+  const session = await parseSession(file)
+  assert.deepEqual(session.behavioral.map(b => b.kind), ['self_correction'])
+  assert.ok(session.behavioral[0].excerpt.includes('My mistake'), 'the confession rides along for the audit')
+})
+
+test('a rejected tool call is a denial event, an ordinary tool result is nothing', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'limbic-'))
+  const file = join(dir, 's.jsonl')
+  const result = (content, isError) => ({
+    type: 'user',
+    isSidechain: false,
+    message: { role: 'user', content: [{ type: 'tool_result', is_error: isError, content }] },
+    timestamp: '2026-08-04T00:02:00Z',
+    sessionId: 's1'
+  })
+  await writeFile(file, [
+    JSON.stringify(result("The user doesn't want to proceed with this tool use. The tool use was rejected.", true)),
+    JSON.stringify(result('file written ok', false)),
+    JSON.stringify(human('carry on'))
+  ].join('\n'))
+  const session = await parseSession(file)
+  assert.deepEqual(session.behavioral.map(b => b.kind), ['denial'])
+  assert.equal(session.prompts.length, 1)
+})

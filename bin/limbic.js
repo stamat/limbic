@@ -58,7 +58,8 @@ if (cmd === 'replay') {
     project: flag(args, '--project', null),
     oracle
   })
-  console.log(`files ${summary.files}  sessions ${summary.sessions}  prompts ${summary.prompts}  records ${summary.records}  bad lines ${summary.badLines}  oracle upgrades ${summary.oracleUpgrades}`)
+  console.log(`files ${summary.files}  sessions ${summary.sessions}  prompts ${summary.prompts}  records ${summary.records}  bad lines ${summary.badLines}`)
+  console.log(`rephrases ${summary.rephrases}  interrupts ${summary.interrupts}  denials ${summary.denials}  self-corrections ${summary.selfCorrections}  oracle upgrades ${summary.oracleUpgrades}  refuted ${summary.oracleRefuted}`)
   oracleReport(oracle)
 } else if (cmd === 'stats') {
   const records = await readLedger(flag(args, '--ledger', defaultLedgerPath()))

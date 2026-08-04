@@ -7,7 +7,7 @@ import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { homedir } from 'node:os'
 import { classify } from '../src/classify.js'
-import { momentary } from '../src/surprise.js'
+import { momentary, CORRECTIVE } from '../src/surprise.js'
 
 if (process.env.LIMBIC_ORACLE) process.exit(0)
 
@@ -21,7 +21,7 @@ try {
     let state = {}
     try { state = JSON.parse(await readFile(statePath, 'utf8')) } catch {}
     const sid = input.session_id ?? 'unknown'
-    const corrective = ['correction', 'fix_request', 'challenge'].includes(label)
+    const corrective = CORRECTIVE.has(label)
     const chain = corrective ? (state.sessionId === sid ? (state.chain ?? 0) + 1 : 1) : 0
     await mkdir(dirname(statePath), { recursive: true })
     await writeFile(statePath, JSON.stringify({ sessionId: sid, chain }))

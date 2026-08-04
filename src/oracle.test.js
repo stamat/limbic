@@ -63,3 +63,12 @@ test('yes/no pair verdicts respect order and unknowns stay null', async () => {
   ])
   assert.deepEqual(out, [true, false])
 })
+
+test('a validate verdict maps no to refuted and yes to standing, in order', async () => {
+  const o = new Oracle({ cachePath: await cachePath(), execFn: async () => '["no","yes"]' })
+  const out = await o.validate([
+    { context: 'delivered the toggle', text: 'what does the toggle cost to render' },
+    { context: 'delivered the toggle', text: 'the toggle shifts the layout when opening' }
+  ])
+  assert.deepEqual(out, [false, true])
+})
