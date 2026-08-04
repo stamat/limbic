@@ -32,6 +32,13 @@ usage:
       against corrections in the second. --online scores every event against
       only what came before it. Honest either way.
 
+  limbic calibrate [--sample] [--llm] [--repeats N] [--corpus FILE]
+      --sample pulls a stratified corpus from history into
+      ~/.limbic/corpus/labels.jsonl for hand-labeling (fill "human" in).
+      Without --sample, scores the cascade against your labels: Cohen's κ,
+      per-label precision/recall; --llm adds N repeat runs on fresh caches
+      with shuffled order — inter-run κ is the consistency number.
+
   limbic install
       Print the hooks block for ~/.claude/settings.json — never edits it.
 
@@ -138,6 +145,61 @@ if (cmd === 'replay') {
     for (const h of r.hits) console.log(`  ~ [${h.signature}] ${h.text}`)
   }
   oracleReport(oracle, embedder)
+} else if (cmd === 'calibrate') {
+  const { sampleCorpus, readCorpus, cascadeLabels, score, kappa, shuffled, freshCachePath, defaultCorpusPath } = await import('../src/calibrate.js')
+  const corpusPath = flag(args, '--corpus', defaultCorpusPath())
+  if (args.includes('--sample')) {
+    const { added, total } = await sampleCorpus({
+      projectsDir: flag(args, '--projects', join(homedir(), '.claude', 'projects')),
+      corpusPath
+    })
+    console.log(`sampled ${added} new items — corpus now ${total}`)
+    console.log(`fill in "human" by editing ${corpusPath}`)
+    console.log('labels: correction | fix_request | challenge | rephrase | accept | neutral')
+  } else {
+    const all = await readCorpus(corpusPath)
+    const corpus = all.filter(c => c.human)
+    if (!corpus.length) {
+      console.error(`no labeled items in ${corpusPath} — run \`limbic calibrate --sample\`, label by hand, retry`)
+      process.exit(1)
+    }
+    console.log(`corpus: ${corpus.length} labeled of ${all.length} sampled`)
+    const detLabels = await cascadeLabels(corpus, null)
+    const det = await score(corpus, (_, i) => detLabels[i])
+    const line = (name, s) => console.log(`${name}: κ ${s.kappa.toFixed(2)}  agreement ${(s.agreement * 100).toFixed(0)}%  n ${s.n}`)
+    line('deterministic cascade', det)
+    for (const [l, m] of Object.entries(det.perLabel)) {
+      console.log(`  ${l.padEnd(12)} precision ${m.precision === null ? '—' : m.precision.toFixed(2)}  recall ${m.recall === null ? '—' : m.recall.toFixed(2)}  n ${m.n}`)
+    }
+    if (args.includes('--llm')) {
+      // The reliability protocol: each repeat gets a fresh cache (a cached
+      // verdict fakes perfect consistency) and a different item order (position
+      // bias survives high test-retest). κ between runs is the honest
+      // consistency number; κ vs human is the honest accuracy number.
+      const { Oracle } = await import('../src/oracle.js')
+      const repeats = Number(flag(args, '--repeats', 3))
+      const runs = []
+      for (let r = 1; r <= repeats; r++) {
+        const oracle = new Oracle({ maxCalls: Number(flag(args, '--max-calls', 60)), cachePath: freshCachePath(r) })
+        const order = shuffled(corpus.map((_, i) => i), r * 7919)
+        const items = order.map(i => corpus[i])
+        const labels = await cascadeLabels(items, oracle)
+        const byId = new Map(items.map((it, k) => [it.id, labels[k]]))
+        runs.push(corpus.map(c => byId.get(c.id)))
+        const s = await score(corpus, (c) => byId.get(c.id))
+        line(`oracle cascade run ${r} (${oracle.calls} calls)`, s)
+      }
+      for (let a = 0; a < runs.length; a++) {
+        for (let b = a + 1; b < runs.length; b++) {
+          console.log(`  inter-run κ ${a + 1}↔${b + 1}: ${kappa(runs[a], runs[b]).toFixed(2)} (order shuffled — disagreement here is inconsistency or position bias)`)
+        }
+      }
+    }
+    if (det.wrong.length) {
+      console.log('worst confusions (deterministic):')
+      for (const w of det.wrong.slice(0, 5)) console.log(`  human=${w.human} got=${w.got}  "${w.text}"`)
+    }
+  }
 } else if (cmd === 'install') {
   // Print-only, deliberately: limbic never edits your settings.json — a
   // memory tool that modifies its host's configuration crosses the same

@@ -123,6 +123,7 @@ behind i0 is [RESEARCH.md](RESEARCH.md).
 | v1 mechanization | Skipped: one accepted rule is no supply; revisit after i3 |
 | i0 detection hardening | Built and benchmarked (2026-08-04): behavioral layer, rephrase layer, validation layer live; tests green. The gate's κ half waits on i2 — precision against the hand corpus is measured there, not claimed here |
 | i1 embedding substrate | Built (2026-08-04): `src/embed.js`, nominate-only, flat JSONL cache, one-failure degrade to oracle-only. Gate unfalsifiable as written — s9's membership dissolved under stricter detection; re-anchored to i2 calibration and i3 minSize-2. Found while gating: the v0 hand-audit corpus was never persisted to disk — i2 rebuilds it as a labeled file before it can score anything |
+| i2 cascade calibration | Harness built (2026-08-04): `limbic calibrate` — stratified corpus sampling (106 items on this history), κ-first scoring, fresh-cache shuffled repeat runs. Gate blocked on the only honest input: the user's hand labels. κ and per-label P/R publish here after a labeling session |
 
 ## Sources
 

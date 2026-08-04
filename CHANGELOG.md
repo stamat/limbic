@@ -68,6 +68,21 @@ All notable changes to limbic are documented here. The format follows
   Stored prompt text capped at 300 chars — the ledger is not a transcript store.
   Zero dependencies, everything local, no LLM calls.
 
+- **i1 embedding substrate** (`src/embed.js`): local vectors over ollama's
+  `/api/embeddings` (`nomic-embed-text`), cached flat in
+  `~/.limbic/cache/embeddings.jsonl` — vector storage without a vector database.
+  Embeddings nominate candidate pairs the lexical floor cannot see; the oracle
+  stays the only confirmer, average-linkage the only merger. One failed call
+  degrades the whole run to oracle-only, stated in the report line. On real
+  history: 422 pairs nominated (~330 beyond lexical), 52 confirmed.
+- **i2 calibration harness** (`limbic calibrate`): `--sample` pulls a stratified
+  corpus from transcript history into `~/.limbic/corpus/labels.jsonl` — classifier
+  inputs frozen per item, `human` left for the user's hand, which is the ground
+  truth. Scoring follows the judge-reliability protocol: Cohen's κ as headline
+  (never raw agreement), per-label precision/recall, and `--llm --repeats N`
+  runs on fresh caches with shuffled order so cached verdicts and fixed
+  positions cannot fake consistency.
+
 ### Fixed
 
 - **All three hooks were dead on arrival**: they read stdin with the promises

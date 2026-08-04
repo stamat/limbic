@@ -48,6 +48,7 @@ npx limbic stats       # correction rates, surprise baseline, per-session sparkl
 npx limbic dream       # cluster corrections into proposed rules (--llm to phrase via claude -p)
 npx limbic rules       # review proposals; accept/reject each by hand
 npx limbic retrodict   # the thesis benchmark, honest either way (--online for per-event)
+npx limbic calibrate   # score the cascade against your hand labels (--sample first)
 npx limbic install     # prints the hooks block for ~/.claude/settings.json — never edits it
 ```
 
