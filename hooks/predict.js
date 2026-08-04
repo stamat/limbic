@@ -8,7 +8,7 @@
 // silently: prediction is a bonus signal, never a tax on the session.
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { open, writeFile, mkdir } from 'node:fs/promises'
 // Stdin is fd 0 — the promises readFile refuses fds, the sync one reads them.
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
@@ -18,7 +18,21 @@ if (process.env.LIMBIC_ORACLE) process.exit(0)
 
 try {
   const input = JSON.parse(readFileSync(0, 'utf8'))
-  const transcript = await readFile(input.transcript_path, 'utf8')
+  // Transcripts reach tens of MB and this hook runs every turn: read only the
+  // tail — the last assistant text lives there. A line cut at the tail's edge
+  // fails JSON.parse and is skipped like any malformed line.
+  const TAIL = 65536
+  const fh = await open(input.transcript_path, 'r')
+  let transcript
+  try {
+    const { size } = await fh.stat()
+    const start = Math.max(0, size - TAIL)
+    const buf = Buffer.alloc(size - start)
+    await fh.read(buf, 0, buf.length, start)
+    transcript = buf.toString('utf8')
+  } finally {
+    await fh.close()
+  }
   const lines = transcript.trim().split('\n').slice(-40)
   let lastAssistant = null
   for (const line of lines) {
