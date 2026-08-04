@@ -72,7 +72,11 @@ pairs, rarely as triples.
    validation, not primary grouping. Fits limbic as: optional local embeddings via
    ollama's HTTP API (localhost fetch, no package dependency, degrades honestly to
    the oracle when absent), cosine candidates → oracle confirms → average-linkage
-   stays as the guard.
+   stays as the guard. Vector storage is committed: vectors persist as a flat
+   `~/.limbic/cache/embeddings.jsonl` beside the oracle cache, and the former
+   "not a vector database" refusal is dropped from CONTRIBUTING — the dependency
+   policy (earned, ask-first) is what governs how the store is built, not whether it
+   exists.
 2. **Injection discipline decides whether memory helps at all.** Letta's RecoveryBench
    shows agents reasoning measurably worse from polluted context; indiscriminate
    memory injection dilutes attention. Limbic's design already agrees (accepted rules
