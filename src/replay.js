@@ -2,9 +2,9 @@ import { listSessionFiles, parseSession } from './transcript.js'
 import { classify } from './classify.js'
 import { markRephrases } from './detect.js'
 import { scoreSession } from './surprise.js'
-import { resetLedger, appendRecords, toRecord } from './ledger.js'
+import { resetLedger, appendRecords, readLedger, toRecord } from './ledger.js'
 
-// Replay is a full rebuild, never an append: running it twice over the same
+// Replay rebuilds every session it can read, never appends: running it twice over the same
 // history must produce byte-identical ledgers, or no benchmark downstream of
 // the ledger can be trusted. The oracle keeps that property by caching every
 // verdict — a second --llm replay asks nothing new.
@@ -75,7 +75,16 @@ export async function replay ({ projectsDir, ledgerPath, project = null, oracle 
     })
   }
 
+  // Rebuild what can be read, keep what cannot: Claude Code deletes
+  // transcripts after `cleanupPeriodDays`, and a plain reset would erase every
+  // session older than that — two months of history, the first time it ran on
+  // a pruned disk. Kept records are carried unchanged, so a second run is
+  // still identical to the first.
+  const rebuilt = new Set(sessions.map(s => s.sessionId))
+  const kept = (await readLedger(ledgerPath)).filter(r => !rebuilt.has(r.sessionId))
   await resetLedger(ledgerPath)
+  await appendRecords(ledgerPath, kept)
+  summary.kept = kept.length
   for (const s of sessions) {
     markRephrases(s.labeled)
     summary.rephrases += s.labeled.filter(l => l.label === 'rephrase').length

@@ -11,6 +11,9 @@ All notable changes to limbic are documented here. The format follows
 - **`directive` and `missed_step` labels.** "Remember in ~/.claude that …" becomes a proposed rule from one prompt, and "did we update the docs?" joins the corrections that dream clusters.
 - **`limbic efficacy`** gives each accepted rule its rate of similar lessons per 1000 prompts, before and after the day you accepted it.
 - **`limbic stats` shows each month's share of clean accepts** — accepts with no correction since the one before. It is the overall number for whether the agent improves.
+- **A holdout for every rule.** Inject keeps each rule from one session in five, and `efficacy` lets misses with and without the rule decide once each side has 20 sessions.
+- **`limbic stats` opens with the repeat rate**: each month's share of lessons that repeat one from the 60 days before, limbic's own goal as a number.
+- **The `injected` record carries the model and a hash of CLAUDE.md**, so a change in either is not read as a rule's effect.
 - **The remind hook** repeats one CLAUDE.md section beside the tool call it governs, once per session — the "Commits" section before `git commit` to start. IFScale found that the errors which grow with instruction count are omissions.
 - **`efficacy` counts the sessions that got each rule and the ones that still missed it.** Three misses send the rule to `revise` at once, and the missed lessons print for you to read.
 - **A rule life cycle.** `efficacy` names each rule's next step (keep, graduate, revise or check), and `limbic graduate` stops injecting a rule once your CLAUDE.md states it.
@@ -126,6 +129,7 @@ All notable changes to limbic are documented here. The format follows
 ### Fixed
 
 - **`dream` reads the replay and live ledgers both.** A rebuild alone lost every session whose transcript Claude Code had deleted, and the hook and replay named one project two ways.
+- **`replay` keeps the sessions whose transcripts are gone.** A full reset erased two months of history the first time it ran on a pruned disk.
 - **Inject sends at most 12 rules, the most evidence first.** ReasoningBank scored 49.7% with one retrieved memory against 44.4% with four.
 - **Pasted content is stripped before classification**, so a pasted "remember: …" cannot become a directive. MINJA put records into agent memory through queries alone.
 - **A question is never an accept.** "Should we also memorize when a job is well done?" was counted as praise.

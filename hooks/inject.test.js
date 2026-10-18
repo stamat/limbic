@@ -51,16 +51,29 @@ test('the strongest rules come first, the cap holds, and the session is ledgered
   const home = await mkdtemp(join(tmpdir(), 'limbic-inject-'))
   const dir = join(home, '.limbic', 'rules')
   await mkdir(dir, { recursive: true })
-  for (let i = 1; i <= 14; i++) {
+  for (let i = 1; i <= 20; i++) {
     await writeFile(join(dir, `r${i}.md`),
       `---\nstatus: accepted\nsize: ${i}\nsignature: r${i}\n---\n\n## Proposed rule\n\nrule r${i}\n\n## Evidence (${i} events)\n`)
   }
-  const out = run(home, JSON.stringify({ cwd: '/x', session_id: 'S' }))
-  const shown = [...out.matchAll(/^- rule (r\d+)/gm)].map(m => m[1])
-  assert.equal(shown.length, 12, 'more rules is not more help — the cap did not hold')
-  assert.equal(shown[0], 'r14', 'the rule with the most evidence was not first')
-  assert.match(out, /2 more accepted rules held back/, 'rules were dropped without a word')
+  const out = run(home, JSON.stringify({ cwd: '/x', session_id: 'S', model: 'claude-opus-5-5' }))
   const [record] = (await readFile(join(home, '.limbic', 'live-ledger.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse)
-  assert.equal(record.label, 'injected')
-  assert.equal(record.given.length, 12, 'efficacy cannot count a delivery nobody recorded')
+  const eligible = Array.from({ length: 20 }, (_, i) => `r${20 - i}`).filter(r => !record.held.includes(`${r}.md`))
+  const shown = [...out.matchAll(/^- rule (r\d+)/gm)].map(m => m[1])
+  assert.deepEqual(shown, eligible.slice(0, 12), 'the cap did not hold, or the strongest rule was not first')
+  assert.match(out, new RegExp(`${eligible.length - 12} more accepted rules held back`), 'rules were dropped without a word')
+  assert.deepEqual(record.given, shown.map(r => `${r}.md`), 'efficacy cannot count a delivery nobody recorded')
+  assert.equal(record.model, 'claude-opus-5-5', 'a model change would read as a rule\'s effect')
+  assert.equal(record.doctrine, null, 'no CLAUDE.md in this home, so no hash')
+})
+
+test('the holdout keeps about one rule in five from a session, the same way every time', async () => {
+  const home = await homeWithRules()
+  const sessions = Array.from({ length: 200 }, (_, i) => `s${i}`)
+  for (const id of sessions) run(home, JSON.stringify({ cwd: '/x', session_id: id }))
+  const records = (await readFile(join(home, '.limbic', 'live-ledger.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse)
+  const held = records.filter(r => r.held.includes('everywhere.md')).length
+  assert.ok(held > 20 && held < 60, `held in ${held} of 200 sessions, expected about 40`)
+  run(home, JSON.stringify({ cwd: '/x', session_id: 's0' }))
+  const again = (await readFile(join(home, '.limbic', 'live-ledger.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse)
+  assert.deepEqual(again.at(-1).held, records[0].held, 'a resumed session drew the holdout again')
 })

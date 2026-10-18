@@ -5,7 +5,7 @@
 // design, the same AUTO threshold that pairs two events without an oracle.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { efficacy, action, doctrineHolds, MIN_AFTER, SETTLE } from './efficacy.js'
+import { efficacy, action, doctrineHolds, MIN_AFTER, SETTLE, HOLDOUT_MIN } from './efficacy.js'
 
 const rule = {
   file: 'r.md',
@@ -75,4 +75,24 @@ test('a session that had the rule and made the mistake anyway is a miss, and thr
   assert.equal(e.action, 'keep')
   const [third] = efficacy([...records, given('E', '2026-10-05T00:00:00Z'), lesson('E', '2026-10-05T00:01:00Z')], [rule])
   assert.equal(third.action, 'revise', 'three misses in sessions that had the rule did not count against it')
+})
+
+test('with enough sessions each side, the holdout decides over every other signal', () => {
+  const before = window(2000, 10)
+  const after = window(SETTLE, 9)
+  const base = { before, after, given: HOLDOUT_MIN, held: HOLDOUT_MIN }
+  assert.equal(action({ ...base, missed: 3, heldMissed: 8 }), 'graduate',
+    'three misses with the rule against eight without it is a rule that works')
+  assert.equal(action({ ...base, missed: 4, heldMissed: 4 }), 'revise', 'the same misses with and without it is no effect')
+  assert.equal(action({ ...base, held: HOLDOUT_MIN - 1, missed: 0, heldMissed: 9 }), action({ before, after, missed: 0 }),
+    'a handful of held-out sessions decided the rule')
+})
+
+test('a held-out session counts its misses on the held side, never on the given side', () => {
+  const records = [
+    { ts: '2026-10-02T00:00:00Z', sessionId: 'H', label: 'injected', text: '', given: [], held: ['r.md'] },
+    { ts: '2026-10-02T00:05:00Z', sessionId: 'H', label: 'fix_request', text: 'navbar overflow clips the menu on mobile again' }
+  ]
+  const [e] = efficacy(records, [rule])
+  assert.deepEqual([e.given, e.missed, e.held, e.heldMissed], [0, 0, 1, 1])
 })

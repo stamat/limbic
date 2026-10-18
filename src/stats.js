@@ -6,7 +6,8 @@ export function sparkline (values) {
   return values.map(v => SPARKS[Math.min(7, Math.floor((v / max) * 8))]).join('')
 }
 
-import { BEHAVIORAL, CORRECTIVE } from './surprise.js'
+import { BEHAVIORAL, CORRECTIVE, LESSON } from './surprise.js'
+import { tokens, jaccard, AUTO } from './cluster.js'
 
 // Baseline normalization is the NuPIC anomaly-likelihood idea shrunk to fit:
 // a session is only remarkable relative to this user's own distribution of
@@ -83,7 +84,8 @@ export function aggregate (records) {
     outlierThreshold: mean + 2 * std,
     topCues,
     maxChain,
-    months: cleanAccepts(records)
+    months: cleanAccepts(records),
+    repeats: repeats(records)
   }
 }
 
@@ -117,10 +119,41 @@ export function cleanAccepts (records) {
   return [...months.values()].sort((a, b) => a.month.localeCompare(b.month))
 }
 
+// limbic's own goal as a number: of each month's lessons, how many repeat a
+// lesson from the 60 days before — "it learns what you correct, so you stop
+// correcting it". The window is fixed because an open one grows with history
+// alone: every month has more past to match. Like is lexical (AUTO).
+export const REPEAT_WINDOW_DAYS = 60
+
+export function repeats (records, days = REPEAT_WINDOW_DAYS) {
+  const lessons = records
+    .filter(r => r.ts && r.text && LESSON.has(r.label))
+    .sort((a, b) => a.ts.localeCompare(b.ts))
+    .map(r => ({ ts: Date.parse(r.ts), month: r.ts.slice(0, 7), toks: tokens(r.text) }))
+  const span = days * 86400000
+  const months = new Map()
+  lessons.forEach((x, i) => {
+    if (!months.has(x.month)) months.set(x.month, { month: x.month, repeats: 0, lessons: 0 })
+    const row = months.get(x.month)
+    row.lessons++
+    for (let j = i - 1; j >= 0 && x.ts - lessons[j].ts <= span; j--) {
+      if (jaccard(x.toks, lessons[j].toks) >= AUTO) { row.repeats++; break }
+    }
+  })
+  return [...months.values()]
+}
+
 export function render (agg) {
   const lines = []
   const t = agg.totals
   const overallRate = t.prompts ? (t.corrective / t.prompts) : 0
+  if (agg.repeats.length) {
+    lines.push(`lessons that repeat one from the ${REPEAT_WINDOW_DAYS} days before — limbic works when this falls:`)
+    for (const m of agg.repeats) {
+      lines.push(`  ${m.month}  ${(100 * m.repeats / m.lessons).toFixed(0).padStart(3)}%  (${m.repeats} of ${m.lessons})`)
+    }
+    lines.push('')
+  }
   lines.push(`sessions ${t.sessions}  prompts ${t.prompts}  corrective ${t.corrective} (${(overallRate * 100).toFixed(1)}%)  accepts ${t.accepts}  interrupts ${t.interrupts}  denials ${t.denials}  self-corrections ${t.selfCorrections}`)
   lines.push(`baseline correction rate ${(agg.baseline.mean * 100).toFixed(1)}% ±${(agg.baseline.std * 100).toFixed(1)}  outlier past ${(agg.outlierThreshold * 100).toFixed(1)}%  max chain ${agg.maxChain}`)
   lines.push('')

@@ -41,9 +41,12 @@ export function toRecord (event, { project, sessionId }) {
 // One record per delivery of rules to a session, so efficacy counts the
 // sessions that actually got a rule — a scoped rule never reaches most of
 // them, and a date split cannot tell. `given` holds rule files, or
-// `CLAUDE.md#<heading>` for a section remind repeated.
-export async function appendInjected ({ sessionId, cwd, given }, path = liveLedgerPath()) {
-  if (!sessionId || !given.length) return
+// `CLAUDE.md#<heading>` for a section remind repeated. `held` names the rules
+// the holdout kept from this session; `model` and `doctrine` (a hash of
+// CLAUDE.md) say what else the session ran under, so a change in either is
+// never read as a rule's effect.
+export async function appendInjected ({ sessionId, cwd, given, held = [], model = null, doctrine = null }, path = liveLedgerPath()) {
+  if (!sessionId || (!given.length && !held.length)) return
   await appendRecords(path, [{
     ts: new Date().toISOString(),
     project: projectSlug(cwd ?? null),
@@ -53,7 +56,10 @@ export async function appendInjected ({ sessionId, cwd, given }, path = liveLedg
     chain: 0,
     surprise: 0,
     text: '',
-    given
+    given,
+    held,
+    model,
+    doctrine
   }])
 }
 

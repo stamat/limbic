@@ -29,7 +29,16 @@ export const SETTLE = 1000
 // turn against, ACE counts a bullet harmful each time it fails.
 export const MISS_LIMIT = 3
 
+// Sessions each side of the holdout needs before it decides. Below it the
+// rates are a handful of sessions; past it, with and without the rule is the
+// only comparison here that the model, the doctrine and the work cannot bend,
+// so it outranks every other signal.
+export const HOLDOUT_MIN = 20
+
 export function action (e) {
+  if (e.given >= HOLDOUT_MIN && e.held >= HOLDOUT_MIN) {
+    return e.missed / e.given < e.heldMissed / e.held ? 'graduate' : 'revise'
+  }
   if (e.missed >= MISS_LIMIT) return 'revise'
   if (e.after.prompts < SETTLE) return 'keep'
   if (e.before.hits === 0) return 'check'
@@ -43,19 +52,19 @@ export function evidenceTexts (body) {
     .map(l => l.slice(2).replace(/^\([^)]*\)\s*/, ''))
 }
 
-// Which sessions got which rule, and from when: inject and remind write an
-// `injected` record each time they deliver.
-function deliveries (records) {
-  const given = new Map()
+// Which sessions got which rule — or were held out of it — and from when:
+// inject and remind write an `injected` record each time they deliver.
+function deliveries (records, field) {
+  const out = new Map()
   for (const r of records) {
-    if (r.label !== 'injected' || !Array.isArray(r.given)) continue
-    for (const file of r.given) {
-      if (!given.has(file)) given.set(file, new Map())
-      const sessions = given.get(file)
+    if (r.label !== 'injected' || !Array.isArray(r[field])) continue
+    for (const file of r[field]) {
+      if (!out.has(file)) out.set(file, new Map())
+      const sessions = out.get(file)
       if (!sessions.has(r.sessionId) || r.ts < sessions.get(r.sessionId)) sessions.set(r.sessionId, r.ts)
     }
   }
-  return given
+  return out
 }
 
 export function efficacy (records, rules) {
@@ -63,7 +72,8 @@ export function efficacy (records, rules) {
   const lessons = prompts
     .filter(r => LESSON.has(r.label) || r.label === 'directive')
     .map(r => ({ r, toks: tokens(r.text ?? '') }))
-  const given = deliveries(records)
+  const given = deliveries(records, 'given')
+  const heldOut = deliveries(records, 'held')
   return rules.map(rule => {
     // ISO timestamps compare as strings, and a bare date sorts before every
     // timestamp of that day: the day of acceptance counts as after.
@@ -79,17 +89,22 @@ export function efficacy (records, rules) {
     const after = window(true)
     // A miss is a session that had the rule in context and made the mistake
     // anyway — the evidence a date split cannot give, and the lesson to read.
-    const sessions = given.get(rule.file) ?? new Map()
-    const misses = []
-    for (const [sessionId, from] of sessions) {
-      const hit = lessons.find(({ r, toks }) => r.sessionId === sessionId && r.ts >= from &&
-        evidence.some(e => jaccard(toks, e) >= AUTO))
-      if (hit) misses.push(hit.r.text)
+    const missesIn = sessions => {
+      const out = []
+      for (const [sessionId, from] of sessions) {
+        const hit = lessons.find(({ r, toks }) => r.sessionId === sessionId && r.ts >= from &&
+          evidence.some(e => jaccard(toks, e) >= AUTO))
+        if (hit) out.push(hit.r.text)
+      }
+      return out
     }
+    const sessions = given.get(rule.file) ?? new Map()
+    const held = heldOut.get(rule.file) ?? new Map()
+    const misses = missesIn(sessions)
     const verdict = after.prompts < MIN_AFTER
       ? 'too early'
       : after.per1000 < before.per1000 ? 'fewer' : 'not fewer'
-    const e = { file: rule.file, since, before, after, verdict, given: sessions.size, missed: misses.length, misses }
+    const e = { file: rule.file, since, before, after, verdict, given: sessions.size, missed: misses.length, misses, held: held.size, heldMissed: missesIn(held).length }
     return { ...e, action: action(e) }
   })
 }

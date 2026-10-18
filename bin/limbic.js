@@ -129,7 +129,7 @@ if (cmd === 'replay') {
     project: flag(args, '--project', null),
     oracle
   })
-  console.log(`files ${summary.files}  sessions ${summary.sessions}  prompts ${summary.prompts}  records ${summary.records}  bad lines ${summary.badLines}`)
+  console.log(`files ${summary.files}  sessions ${summary.sessions}  prompts ${summary.prompts}  records ${summary.records}  kept ${summary.kept} (transcripts gone)  bad lines ${summary.badLines}`)
   console.log(`rephrases ${summary.rephrases}  interrupts ${summary.interrupts}  denials ${summary.denials}  self-corrections ${summary.selfCorrections}  oracle upgrades ${summary.oracleUpgrades}  refuted ${summary.oracleRefuted}`)
   oracleReport(oracle)
 } else if (cmd === 'stats') {
@@ -186,7 +186,7 @@ if (cmd === 'replay') {
   }
   for (const e of efficacy(await history(), rules)) {
     const w = s => `${s.per1000.toFixed(1)}/1000 (${s.hits} of ${s.prompts})`
-    console.log(`${e.action.padEnd(9)} ${e.file}  since ${e.since}  ${e.verdict}\n    before ${w(e.before)}  after ${w(e.after)}  given ${e.given} sessions, missed in ${e.missed}`)
+    console.log(`${e.action.padEnd(9)} ${e.file}  since ${e.since}  ${e.verdict}\n    before ${w(e.before)}  after ${w(e.after)}  given ${e.given} sessions, missed in ${e.missed}  held out ${e.held}, missed in ${e.heldMissed}`)
     for (const m of e.misses.slice(0, 2)) console.log(`    ✗ ${m.replace(/\s+/g, ' ').slice(0, 100)}`)
   }
   console.log('\ngraduate: paste the rule into your CLAUDE.md, then `limbic graduate <file>`')

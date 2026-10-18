@@ -4,7 +4,7 @@
 // batch tool and slow is acceptable, wrong is not.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { replay } from './replay.js'
@@ -165,4 +165,14 @@ test('a validated oracle upgrade sticks', async () => {
   const record = (await readFile(ledger, 'utf8')).trim().split('\n').map(JSON.parse)[0]
   assert.equal(record.label, 'correction')
   assert.equal(record.cue, 'oracle')
+})
+
+test('a session whose transcript Claude Code deleted keeps its records', async () => {
+  const { projects, ledger } = await fixture()
+  await replay({ projectsDir: projects, ledgerPath: ledger })
+  const before = await readFile(ledger, 'utf8')
+  await rm(join(projects, 'proj-a', 'sess-1.jsonl'))
+  const summary = await replay({ projectsDir: projects, ledgerPath: ledger })
+  assert.equal(await readFile(ledger, 'utf8'), before, 'a pruned transcript erased its history from the ledger')
+  assert.equal(summary.kept, 4)
 })

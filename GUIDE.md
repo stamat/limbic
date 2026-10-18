@@ -62,7 +62,7 @@ prevents this have saved the exchange?
 | `accept` | the work landed. A request to commit or push counts. A question is never an accept | "works now, thanks", "commit and push" |
 | `neutral` | everything else: tasks, questions, information, thinking aloud | "em or rem what's the difference?" |
 | `interrupt` / `denial` / `self_correction` | behavioral events, not prompts | — |
-| `injected` | which rules, or `CLAUDE.md#<heading>` sections, a session was given (`given`). Written by inject and remind | — |
+| `injected` | which rules, or `CLAUDE.md#<heading>` sections, a session was given (`given`) and which the holdout kept from it (`held`), with the `model` and a hash of CLAUDE.md (`doctrine`). Written by inject and remind | — |
 
 Judgment calls that recur: a design question ("was it better to…?",
 "should we have chosen em?") is neutral — challenge requires pushing back,
@@ -73,9 +73,17 @@ why-question. A verbatim resend after an error is neutral.
 ## Commands
 
 - **`replay [--projects DIR] [--project SLUG] [--ledger FILE] [--llm]`** —
-  full rebuild of the ledger from `~/.claude/projects` history. Idempotent:
-  same history, same ledger, byte for byte. `--llm` adds the oracle layers.
-- **`stats [--ledger FILE]`** — correction rates against your own baseline,
+  rebuilds every session whose transcript is in `~/.claude/projects`, and
+  keeps the records of sessions whose transcript Claude Code deleted.
+  Idempotent: same history, same ledger, byte for byte. `--llm` adds the
+  oracle layers. Run `replay --llm` once a month: the live hook labels with
+  regex only, which finds fewer corrections than the oracle, so months
+  labelled two ways cannot be compared. Set `cleanupPeriodDays` in
+  `settings.json` (365, for example) so the transcripts are still there.
+- **`stats [--ledger FILE]`** — first, for each month, the share of lessons
+  that repeat a lesson from the 60 days before: limbic works when it falls.
+  The window is fixed, because an open one grows with history alone. Then
+  correction rates against your own baseline,
   per-session sparklines, behavioral counts, top cues, and for each month the
   share of accepts with no correction since the accept before. That share is
   the number that shows whether the agent improves overall. It is coarse: a
@@ -100,11 +108,13 @@ why-question. A verbatim resend after an error is neutral.
   lower rate is evidence, not proof: you may only have stopped working where
   the mistake lives. Each rule also shows `given` (sessions that got it) and
   `missed` (of those, sessions with a lesson like its evidence), with up to
-  two missed lessons to read. Each rule also gets an action, the rule's life
+  two missed lessons to read, and the same two counts for the sessions the
+  holdout kept the rule from. Each rule also gets an action, the rule's life
   cycle:
 
   | Action | When | Do |
   |---|---|---|
+  | `graduate` or `revise` by holdout | 20 sessions or more each side of the holdout: fewer misses with the rule than without it graduates, otherwise revise. This decides before any row below | as below |
   | `keep` | fewer than 1000 prompts after acceptance | nothing yet |
   | `graduate` | the rate after is lower than before | paste the rule into your CLAUDE.md, then `limbic graduate <file>` |
   | `revise` | the rate after is the same or higher, or 3 sessions that had the rule made the mistake anyway | edit the statement, or reject the rule |
@@ -198,6 +208,10 @@ that blocks a prompt is worse than no memory tool:
   evidence first: more memory made agents worse in ReasoningBank, and models
   follow early instructions better under load (IFScale). The hook says how
   many it held back, and records what it gave as an `injected` record.
+  **Holdout:** each rule skips one session in five, picked from a hash of the
+  session and the rule, so a resumed session decides the same way. Misses
+  with the rule against misses without it is the only measure that the
+  model, the doctrine and the work cannot bend.
 - **remind** (`PreToolUse`, opt-in via `--remind`): repeats one CLAUDE.md
   section beside the tool call it governs — `remind.js Commits` with the hook
   `if` `Bash(git commit *)`. Once per section per session. The section is read

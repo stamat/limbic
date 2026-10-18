@@ -45,7 +45,7 @@ before believing it:
 
 ```sh
 npx limbic replay      # rebuild the ledger from ~/.claude/projects history
-npx limbic stats       # correction rates, surprise baseline, per-session sparklines, clean accepts per month
+npx limbic stats       # repeated lessons per month (limbic works when it falls), correction rates, clean accepts
 npx limbic dream       # cluster corrections and missed steps into proposed rules (--llm to phrase via claude -p)
 npx limbic rules       # review proposals; accept/reject each by hand
 npx limbic efficacy    # did an accepted rule work? keep, graduate, revise or check
