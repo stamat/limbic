@@ -59,7 +59,7 @@ prevents this have saved the exchange?
 | `rephrase` | the same ask reworded, previous delivery missed | detected, not typed |
 | `missed_step` | a step the agent should have taken unasked. Not corrective: no surprise, no chain. Dream clusters it with the corrections | "did we update the docs?", "don't forget to update the examples" |
 | `directive` | a standing instruction the user asks the agent to keep. Dream proposes each one alone | "remember in ~/.claude that changelog notes stay bare", "from now on, always run the linter" |
-| `accept` | the work landed. A request to commit or push counts | "works now, thanks", "commit and push" |
+| `accept` | the work landed. A request to commit or push counts. A question is never an accept | "works now, thanks", "commit and push" |
 | `neutral` | everything else: tasks, questions, information, thinking aloud | "em or rem what's the difference?" |
 | `interrupt` / `denial` / `self_correction` | behavioral events, not prompts | — |
 
@@ -75,7 +75,11 @@ why-question. A verbatim resend after an error is neutral.
   full rebuild of the ledger from `~/.claude/projects` history. Idempotent:
   same history, same ledger, byte for byte. `--llm` adds the oracle layers.
 - **`stats [--ledger FILE]`** — correction rates against your own baseline,
-  per-session sparklines, behavioral counts, top cues.
+  per-session sparklines, behavioral counts, top cues, and for each month the
+  share of accepts with no correction since the accept before. That share is
+  the number that shows whether the agent improves overall. It is coarse: a
+  commit request counts as an accept. Reads both ledgers unless `--ledger`
+  names one.
 - **`dream [--ledger FILE] [--llm] [--min N] [--claude-md FILE]`** — cluster
   corrective and missed-step events into proposed rules under
   `~/.limbic/rules/`, and propose each directive as its own rule. At `--min 2`

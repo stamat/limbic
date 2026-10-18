@@ -13,7 +13,9 @@ usage:
       Defaults: --projects ~/.claude/projects, --ledger ~/.limbic/ledger.jsonl
 
   limbic stats [--ledger FILE]
-      Correction rates, surprise baseline, per-session sparklines.
+      Correction rates, surprise baseline, per-session sparklines, and each
+      month's share of accepts with no correction since the last accept.
+      Reads the replay and live ledgers both unless --ledger names one.
 
   limbic dream [--ledger FILE] [--llm] [--min N] [--claude-md FILE]
       Cluster corrections and missed steps into proposed rules in
@@ -128,7 +130,7 @@ if (cmd === 'replay') {
   console.log(`rephrases ${summary.rephrases}  interrupts ${summary.interrupts}  denials ${summary.denials}  self-corrections ${summary.selfCorrections}  oracle upgrades ${summary.oracleUpgrades}  refuted ${summary.oracleRefuted}`)
   oracleReport(oracle)
 } else if (cmd === 'stats') {
-  const records = await readLedger(flag(args, '--ledger', defaultLedgerPath()))
+  const records = await history()
   if (!records.length) {
     console.error('ledger is empty — run `limbic replay` first')
     process.exit(1)

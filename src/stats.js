@@ -6,7 +6,7 @@ export function sparkline (values) {
   return values.map(v => SPARKS[Math.min(7, Math.floor((v / max) * 8))]).join('')
 }
 
-import { BEHAVIORAL } from './surprise.js'
+import { BEHAVIORAL, CORRECTIVE } from './surprise.js'
 
 // Baseline normalization is the NuPIC anomaly-likelihood idea shrunk to fit:
 // a session is only remarkable relative to this user's own distribution of
@@ -82,8 +82,39 @@ export function aggregate (records) {
     baseline: { mean, std },
     outlierThreshold: mean + 2 * std,
     topCues,
-    maxChain
+    maxChain,
+    months: cleanAccepts(records)
   }
+}
+
+// The one number that says whether the agent improves overall, not one rule
+// at a time: of the deliveries the user accepted each month, how many came
+// with no correction since the accept before. Coarse by design — a commit
+// request counts as an accept, and a task's kind is unknown — so read the
+// trend, never one month.
+export function cleanAccepts (records) {
+  const sessions = new Map()
+  for (const r of records) {
+    if (!r.ts || BEHAVIORAL.has(r.label)) continue
+    if (!sessions.has(r.sessionId)) sessions.set(r.sessionId, [])
+    sessions.get(r.sessionId).push(r)
+  }
+  const months = new Map()
+  for (const recs of sessions.values()) {
+    recs.sort((a, b) => a.ts.localeCompare(b.ts))
+    let corrected = false
+    for (const r of recs) {
+      if (CORRECTIVE.has(r.label)) corrected = true
+      if (r.label !== 'accept') continue
+      const m = r.ts.slice(0, 7)
+      if (!months.has(m)) months.set(m, { month: m, clean: 0, accepts: 0 })
+      const row = months.get(m)
+      row.accepts++
+      if (!corrected) row.clean++
+      corrected = false
+    }
+  }
+  return [...months.values()].sort((a, b) => a.month.localeCompare(b.month))
 }
 
 export function render (agg) {
@@ -99,6 +130,13 @@ export function render (agg) {
     const behavioral = p.interrupts || p.denials || p.selfCorrections ? `  interrupts ${p.interrupts}  denials ${p.denials}  self-corrections ${p.selfCorrections}` : ''
     lines.push(`  sessions ${p.sessions}  prompts ${p.prompts}  corrective ${p.corrective} (${(p.correctionRate * 100).toFixed(1)}%: ${p.corrections}c ${p.fixRequests}f ${p.challenges}q ${p.rephrases}r)  accepts ${p.accepts}${behavioral}`)
     lines.push(`  per-session rate ${sparkline(p.sessionRates)}`)
+  }
+  if (agg.months.length) {
+    lines.push('')
+    lines.push('accepted with no correction since the last accept:')
+    for (const m of agg.months) {
+      lines.push(`  ${m.month}  ${(100 * m.clean / m.accepts).toFixed(0).padStart(3)}%  (${m.clean} of ${m.accepts})`)
+    }
   }
   if (agg.topCues.length) {
     lines.push('')

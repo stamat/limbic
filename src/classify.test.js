@@ -115,3 +115,10 @@ test('asking to commit accepts the work, unless it opens with a correction', () 
   assert.equal(classify("let's commit the fix").label, 'accept')
   assert.equal(classify('no just commit and push').label, 'correction', 'the "no" outranks the commit')
 })
+
+test('a question that mentions work well done is not an accept', () => {
+  assert.equal(classify('should we only memorise the failures or maybe also memorize when a job is well done?').label, 'neutral',
+    'the question about praise was counted as praise')
+  assert.equal(classify('good job, is the measurment for slider optimised?').label, 'accept',
+    'praise followed by a question is still praise')
+})

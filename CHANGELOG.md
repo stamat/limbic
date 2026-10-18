@@ -10,6 +10,7 @@ All notable changes to limbic are documented here. The format follows
 
 - **`directive` and `missed_step` labels.** "Remember in ~/.claude that …" becomes a proposed rule from one prompt, and "did we update the docs?" joins the corrections that dream clusters.
 - **`limbic efficacy`** gives each accepted rule its rate of similar lessons per 1000 prompts, before and after the day you accepted it.
+- **`limbic stats` shows each month's share of clean accepts** — accepts with no correction since the one before. It is the overall number for whether the agent improves.
 - **A rule life cycle.** `efficacy` names each rule's next step (keep, graduate, revise or check), and `limbic graduate` stops injecting a rule once your CLAUDE.md states it.
 - **Rules scoped to their project.** A rule learned in one project goes only to sessions in that project, and `dream --llm` phrases rules in the words of your CLAUDE.md and files the ones it already states as `covered`.
 - **RESEARCH.md** — correction-detection research report: what the field calls the
@@ -123,6 +124,7 @@ All notable changes to limbic are documented here. The format follows
 ### Fixed
 
 - **`dream` reads the replay and live ledgers both.** A rebuild alone lost every session whose transcript Claude Code had deleted, and the hook and replay named one project two ways.
+- **A question is never an accept.** "Should we also memorize when a job is well done?" was counted as praise.
 - **A commit request is an accept.** 294 prompts were neutral that said the work landed, against 22 spoken accepts.
 - **The claude that `dream` starts runs with limbic off.** Its hooks recorded the phrasing prompt as the user's, 12 times in two runs.
 - **The live hook reads prompts as replay does.** It recorded background task

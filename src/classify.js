@@ -110,8 +110,9 @@ const LABELS = [
 ]
 
 // A directive is guarded too: a question about what to remember is not an
-// instruction to remember it.
-const GUARDED = new Set(['fix_request', 'directive'])
+// instruction to remember it. So is an accept: "should we also memorize when
+// a job is well done?" carried the cue and praised nothing.
+const GUARDED = new Set(['fix_request', 'directive', 'accept'])
 
 export function classify (text) {
   for (const [label, cues] of LABELS) {
