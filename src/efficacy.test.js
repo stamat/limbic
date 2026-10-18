@@ -59,3 +59,20 @@ test('graduation needs a doctrine line that states the rule', () => {
   assert.ok(!doctrineHolds(statement, ['Every comparison is a table.']),
     'a rule left every session without landing in the doctrine')
 })
+
+test('a session that had the rule and made the mistake anyway is a miss, and three send it to revise', () => {
+  const given = (sessionId, ts) => ({ ts, sessionId, label: 'injected', text: '', given: ['r.md'] })
+  const lesson = (sessionId, ts) => ({ ts, sessionId, label: 'fix_request', text: 'navbar overflow clips the menu on mobile again' })
+  const records = [
+    given('A', '2026-10-02T00:00:00Z'), lesson('A', '2026-10-02T00:05:00Z'),
+    given('B', '2026-10-03T00:00:00Z'), lesson('B', '2026-10-03T00:05:00Z'),
+    given('C', '2026-10-04T00:00:00Z'),
+    lesson('D', '2026-10-04T00:05:00Z')
+  ]
+  const [e] = efficacy(records, [rule])
+  assert.equal(e.given, 3)
+  assert.equal(e.missed, 2, 'a session never given the rule was billed as its miss')
+  assert.equal(e.action, 'keep')
+  const [third] = efficacy([...records, given('E', '2026-10-05T00:00:00Z'), lesson('E', '2026-10-05T00:01:00Z')], [rule])
+  assert.equal(third.action, 'revise', 'three misses in sessions that had the rule did not count against it')
+})

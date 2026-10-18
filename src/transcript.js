@@ -17,8 +17,14 @@ const COMMAND_MARKERS = ['<command-name>', '<local-command-stdout>', '<local-com
 // own words often follow the block.
 const WRAPPER_BLOCKS = /<(ide_selection|ide_opened_file|system-reminder)>[\s\S]*?<\/\1>/g
 
+// Pasted text is the injection door MINJA-style attacks use (arXiv
+// 2503.03704): a pasted README saying "remember: …" would be a directive the
+// user never typed. Both tags carry an id attribute — the format comes from
+// the harness description; no pasted block was on disk to confirm it.
+const PASTED_BLOCKS = /<pasted_content\b[^>]*>[\s\S]*?<\/pasted_content\b[^>]*>/g
+
 export function stripWrappers (text) {
-  return text.replace(WRAPPER_BLOCKS, '').trim()
+  return text.replace(WRAPPER_BLOCKS, '').replace(PASTED_BLOCKS, '').trim()
 }
 
 // The UserPromptSubmit hook gets no `origin`, so it cannot ask isHumanPrompt:

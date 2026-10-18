@@ -28,6 +28,29 @@ export function doctrineLines (markdown) {
   return out
 }
 
+// The body under one heading, down to the next heading at the same level or
+// higher — the unit remind repeats. Matched on the heading's words, case
+// ignored. A `#` line inside a code fence is a shell comment, not a heading.
+export function section (markdown, heading) {
+  const want = heading.trim().toLowerCase()
+  let fenced = false
+  let level = 0
+  let out = null
+  for (const line of markdown.split('\n')) {
+    if (line.trim().startsWith('```')) fenced = !fenced
+    const m = fenced ? null : line.match(/^(#{1,6})\s+(.*?)\s*$/)
+    if (m && out) {
+      if (m[1].length <= level) break
+    } else if (m && m[2].toLowerCase() === want) {
+      level = m[1].length
+      out = []
+      continue
+    }
+    if (out) out.push(line)
+  }
+  return out ? out.join('\n').trim() || null : null
+}
+
 export async function curate ({ rules, doctrine, oracle = null, embedder = null }) {
   const lines = doctrineLines(doctrine)
   const additions = []

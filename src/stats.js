@@ -37,7 +37,7 @@ export function aggregate (records) {
         if (BEHAVIORAL.has(r.label)) {
           if (r.label === 'interrupt') p.interrupts++
           else if (r.label === 'denial') p.denials++
-          else p.selfCorrections++
+          else if (r.label === 'self_correction') p.selfCorrections++
           continue
         }
         promptCount++

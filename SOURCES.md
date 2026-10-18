@@ -107,6 +107,39 @@ The closest thing to limbic's exact domain: real developers correcting real agen
   **Why it matters:** the personal baseline in `stats.js` — and NuPIC's death by
   platform-outliving-research is CONTRIBUTING's "not a framework" cautionary tale.
 
+## Self-improving agents (2026-10 pass)
+
+- **[ACE: Agentic Context Engineering](https://arxiv.org/html/2510.04618v2)** [read]
+  Context as itemized bullets with helpful/harmful counters, changed by small
+  deltas and never rewritten whole. One rewrite collapsed 18,282 tokens to 122,
+  and accuracy fell from 66.7% to 57.1%, under the 63.7% baseline. Without labels
+  the gain fell from +15.5% to +3.8%.
+  **Why it matters:** rules stay separate files and limbic never rewrites the
+  doctrine; the per-rule `given`/`missed` counts are its counters.
+- **[ReasoningBank](https://arxiv.org/html/2509.25140v1)** [read]
+  Memory items from self-judged successes and failures. Failures added 3.2
+  points (46.5% to 49.7%). One retrieved memory beat four (49.7% to 44.4%).
+  **Why it matters:** the inject cap, and the case for failures as the signal.
+- **[How Many Instructions Can LLMs Follow at Once? (IFScale)](https://arxiv.org/html/2507.11538v1)** [read]
+  Claude Sonnet 4: 100% at 10 instructions, 98% at 50, 94.4% at 100. Errors are
+  mostly omissions; earlier instructions are followed better under load.
+  **Why it matters:** inject orders by evidence, and remind fights omission.
+- **[Aligning LLM Agents by Learning Latent Preference from User Edits (CIPHER)](https://arxiv.org/pdf/2404.15269)** [abstract only]
+  Infers a preference from each user edit and retrieves those of the k most
+  similar contexts.
+  **Why it matters:** the shape for per-prompt retrieval once rules outgrow the cap.
+- **[MINJA: Memory Injection Attacks on LLM Agents](https://arxiv.org/html/2503.03704v5)** [abstract only]
+  Malicious records put into agent memory through queries alone, over 95%
+  injection success.
+  **Why it matters:** pasted content is stripped before classification.
+- **[ExpeL](https://arxiv.org/html/2308.10144v3)** [read, summary]
+  Insights from success/failure pairs, kept alive by UPVOTE/DOWNVOTE and removed at zero.
+  **Why it matters:** three misses send a rule to `revise`.
+- **[Darwin Gödel Machine](https://sakana.ai/dgm/)** [surfaced]
+  An agent that edits its own tools and workflow: SWE-bench from 20.0% to 50.0%.
+  **Why it matters:** harness changes, not memory, carried the largest gain — out
+  of limbic's scope today.
+
 ## Clustering and classification
 
 - **[Human-interpretable clustering of short text using LLMs](https://royalsocietypublishing.org/doi/10.1098/rsos.241692)** [day-one pass]

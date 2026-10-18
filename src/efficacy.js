@@ -24,7 +24,13 @@ export const SETTLE = 1000
 //           effect cannot be read; the evidence was not corrective or is
 //           worded unlike any later lesson.
 // keep:     too little history after acceptance to judge.
+// A rule that sessions were given and that still missed MISS_LIMIT times is
+// revised at once, whatever the history: ExpeL drops an insight its votes
+// turn against, ACE counts a bullet harmful each time it fails.
+export const MISS_LIMIT = 3
+
 export function action (e) {
+  if (e.missed >= MISS_LIMIT) return 'revise'
   if (e.after.prompts < SETTLE) return 'keep'
   if (e.before.hits === 0) return 'check'
   return e.after.per1000 < e.before.per1000 ? 'graduate' : 'revise'
@@ -37,11 +43,27 @@ export function evidenceTexts (body) {
     .map(l => l.slice(2).replace(/^\([^)]*\)\s*/, ''))
 }
 
+// Which sessions got which rule, and from when: inject and remind write an
+// `injected` record each time they deliver.
+function deliveries (records) {
+  const given = new Map()
+  for (const r of records) {
+    if (r.label !== 'injected' || !Array.isArray(r.given)) continue
+    for (const file of r.given) {
+      if (!given.has(file)) given.set(file, new Map())
+      const sessions = given.get(file)
+      if (!sessions.has(r.sessionId) || r.ts < sessions.get(r.sessionId)) sessions.set(r.sessionId, r.ts)
+    }
+  }
+  return given
+}
+
 export function efficacy (records, rules) {
   const prompts = records.filter(r => r.ts && !BEHAVIORAL.has(r.label))
   const lessons = prompts
     .filter(r => LESSON.has(r.label) || r.label === 'directive')
     .map(r => ({ r, toks: tokens(r.text ?? '') }))
+  const given = deliveries(records)
   return rules.map(rule => {
     // ISO timestamps compare as strings, and a bare date sorts before every
     // timestamp of that day: the day of acceptance counts as after.
@@ -55,10 +77,19 @@ export function efficacy (records, rules) {
     }
     const before = window(false)
     const after = window(true)
+    // A miss is a session that had the rule in context and made the mistake
+    // anyway — the evidence a date split cannot give, and the lesson to read.
+    const sessions = given.get(rule.file) ?? new Map()
+    const misses = []
+    for (const [sessionId, from] of sessions) {
+      const hit = lessons.find(({ r, toks }) => r.sessionId === sessionId && r.ts >= from &&
+        evidence.some(e => jaccard(toks, e) >= AUTO))
+      if (hit) misses.push(hit.r.text)
+    }
     const verdict = after.prompts < MIN_AFTER
       ? 'too early'
       : after.per1000 < before.per1000 ? 'fewer' : 'not fewer'
-    const e = { file: rule.file, since, before, after, verdict }
+    const e = { file: rule.file, since, before, after, verdict, given: sessions.size, missed: misses.length, misses }
     return { ...e, action: action(e) }
   })
 }

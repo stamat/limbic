@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { curate, doctrineLines } from './curate.js'
+import { curate, doctrineLines, section } from './curate.js'
 import { Embedder } from './embed.js'
 import { Oracle } from './oracle.js'
 
@@ -50,4 +50,13 @@ test('with no embedder every rule is proposed — doubt proposes, never drops', 
   const { additions, covered } = await curate({ rules, doctrine: DOCTRINE })
   assert.equal(additions.length, 1)
   assert.equal(covered.length, 0)
+})
+
+test('a section ends at the next heading of its level, and fenced comments are not headings', () => {
+  const md = '# Commits\n\nOne line.\n\n```sh\n# not a heading\ngit commit\n```\n\n## Messages\n\nLowercase.\n\n# Tests\n\nSentences.'
+  const body = section(md, 'commits')
+  assert.match(body, /git commit/, 'a shell comment in a fence cut the section short')
+  assert.match(body, /Lowercase\./, 'a subsection belongs to its section')
+  assert.doesNotMatch(body, /Sentences/, 'the next section leaked in')
+  assert.equal(section(md, 'Deploys'), null)
 })

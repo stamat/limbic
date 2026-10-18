@@ -20,7 +20,9 @@ export function ema (prev, value, alpha = 0.3) {
 // feedback category in chat-log studies — RESEARCH.md). Behavioral events
 // are not prompts: recorded, counted, never chained or classified.
 export const CORRECTIVE = new Set(['correction', 'fix_request', 'challenge', 'rephrase'])
-export const BEHAVIORAL = new Set(['interrupt', 'denial', 'self_correction'])
+// `injected` records which rules (or doctrine sections) a session was given —
+// written by inject and remind, read by efficacy to count sessions per rule.
+export const BEHAVIORAL = new Set(['interrupt', 'denial', 'self_correction', 'injected'])
 // What dream clusters: every corrective label, plus a missed step — a lesson
 // with no surprise in it. A directive is not here: it states its own rule and
 // needs no cluster to deduce one.

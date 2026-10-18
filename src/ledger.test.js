@@ -31,3 +31,13 @@ test('history keeps live sessions replay lost, and replay wins a session both ho
     'a deleted session vanished, or a session was counted twice')
   assert.ok(records.every(r => r.project === '-p'), 'both ledgers read as one project')
 })
+
+test('a delivery stays in history even for a session replay rebuilt', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'limbic-ledger-'))
+  const replayed = join(dir, 'ledger.jsonl')
+  const live = join(dir, 'live.jsonl')
+  await writeFile(replayed, line({ ts: '2026-10-02T00:00:01Z', sessionId: 'B', label: 'neutral', project: '-p', text: 'x' }))
+  await writeFile(live, line({ ts: '2026-10-02T00:00:00Z', sessionId: 'B', label: 'injected', project: '-p', text: '', given: ['r.md'] }))
+  const records = await readHistory(replayed, live)
+  assert.ok(records.some(r => r.label === 'injected'), 'replay never sees an injection, so dropping it loses it')
+})

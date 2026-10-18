@@ -62,6 +62,7 @@ prevents this have saved the exchange?
 | `accept` | the work landed. A request to commit or push counts. A question is never an accept | "works now, thanks", "commit and push" |
 | `neutral` | everything else: tasks, questions, information, thinking aloud | "em or rem what's the difference?" |
 | `interrupt` / `denial` / `self_correction` | behavioral events, not prompts | — |
+| `injected` | which rules, or `CLAUDE.md#<heading>` sections, a session was given (`given`). Written by inject and remind | — |
 
 Judgment calls that recur: a design question ("was it better to…?",
 "should we have chosen em?") is neutral — challenge requires pushing back,
@@ -97,13 +98,16 @@ why-question. A verbatim resend after an error is neutral.
   means lexical overlap at the same threshold that pairs two events without
   an oracle. Fewer than 200 prompts after acceptance reads `too early`. A
   lower rate is evidence, not proof: you may only have stopped working where
-  the mistake lives. Each rule also gets an action, the rule's life cycle:
+  the mistake lives. Each rule also shows `given` (sessions that got it) and
+  `missed` (of those, sessions with a lesson like its evidence), with up to
+  two missed lessons to read. Each rule also gets an action, the rule's life
+  cycle:
 
   | Action | When | Do |
   |---|---|---|
   | `keep` | fewer than 1000 prompts after acceptance | nothing yet |
   | `graduate` | the rate after is lower than before | paste the rule into your CLAUDE.md, then `limbic graduate <file>` |
-  | `revise` | the rate after is the same or higher | edit the statement, or reject the rule |
+  | `revise` | the rate after is the same or higher, or 3 sessions that had the rule made the mistake anyway | edit the statement, or reject the rule |
   | `check` | no corrective lesson before acceptance matched the evidence, so the effect cannot be read | read the rule; keep it or reject it |
 - **`graduate <file> [--claude-md FILE]`** — sets an accepted rule to
   `graduated`, and `inject` stops sending it. It refuses until a line in your
@@ -123,8 +127,10 @@ why-question. A verbatim resend after an error is neutral.
 - **`curate [--claude-md FILE] [--llm]`** — accepted rules read against the
   CLAUDE.md you already maintain: proposes additions, flags rules your
   doctrine already covers. Prints only.
-- **`install [--predict]`** — prints the hooks block for
+- **`install [--predict] [--remind]`** — prints the hooks block for
   `~/.claude/settings.json`. Never edits it; to uninstall, delete the block.
+  `--remind` adds the remind hook for the "Commits" heading before
+  `git commit`; copy the entry for other headings and commands.
 
 ## Files on disk
 
@@ -137,6 +143,7 @@ back those up).
 | `ledger.jsonl` | one record per prompt/event | `replay` (full rebuild) |
 | `live-ledger.jsonl` | same shape, appended live. The only copy of a session after Claude Code deletes its transcript (`cleanupPeriodDays`, 30 by default) | classify hook |
 | `live-state.json` | per-session chain counters, bounded at 50 | classify hook |
+| `remind-state.json` | which sections each session was reminded of, bounded at 50 sessions | remind hook |
 | `prediction.json` | the standing next-message prediction, consumed on scoring | predict hook |
 | `rules/*.md` | one rule per file, status in frontmatter | `dream`, `accept`, `reject`, you |
 | `corpus/labels.jsonl` | calibration corpus, `human` field is yours | `calibrate --sample`, you |
@@ -178,7 +185,7 @@ limbic sees the flag and does nothing. Every command reports its spend:
 
 ## Hooks
 
-`install` prints; you paste. Three hooks, all exit 0 always — a memory tool
+`install` prints; you paste. Four hooks, all exit 0 always — a memory tool
 that blocks a prompt is worse than no memory tool:
 
 - **classify** (`UserPromptSubmit`): regex-only hot path, appends to the live
@@ -187,7 +194,15 @@ that blocks a prompt is worse than no memory tool:
 - **inject** (`SessionStart`): prints accepted rules — and only accepted —
   into session context. The propose gate is the security boundary. A rule
   with `project:` goes only to a session whose cwd is that project. A session
-  that gives no cwd gets the global rules alone.
+  that gives no cwd gets the global rules alone. At most 12 rules, the most
+  evidence first: more memory made agents worse in ReasoningBank, and models
+  follow early instructions better under load (IFScale). The hook says how
+  many it held back, and records what it gave as an `injected` record.
+- **remind** (`PreToolUse`, opt-in via `--remind`): repeats one CLAUDE.md
+  section beside the tool call it governs — `remind.js Commits` with the hook
+  `if` `Bash(git commit *)`. Once per section per session. The section is read
+  from `~/.claude/CLAUDE.md` each time, so the text stays in one place. A
+  heading the file lacks prints nothing and says so in the debug log.
 - **predict** (`Stop`, opt-in via `--predict`): one Haiku call per turn,
   predicts your next message from the turn's tail; the next prompt scores it
   hit or miss.

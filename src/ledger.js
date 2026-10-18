@@ -38,6 +38,25 @@ export function toRecord (event, { project, sessionId }) {
   }
 }
 
+// One record per delivery of rules to a session, so efficacy counts the
+// sessions that actually got a rule — a scoped rule never reaches most of
+// them, and a date split cannot tell. `given` holds rule files, or
+// `CLAUDE.md#<heading>` for a section remind repeated.
+export async function appendInjected ({ sessionId, cwd, given }, path = liveLedgerPath()) {
+  if (!sessionId || !given.length) return
+  await appendRecords(path, [{
+    ts: new Date().toISOString(),
+    project: projectSlug(cwd ?? null),
+    sessionId,
+    label: 'injected',
+    cue: null,
+    chain: 0,
+    surprise: 0,
+    text: '',
+    given
+  }])
+}
+
 export async function resetLedger (path) {
   await rm(path, { force: true })
   await mkdir(dirname(path), { recursive: true })
@@ -72,10 +91,11 @@ export async function readLedger (path) {
 // Replay cannot rebuild what Claude Code already deleted (transcripts expire
 // after `cleanupPeriodDays`), so the live ledger is the only copy of older
 // sessions. A session in both is replay's — it saw the previous turn and the
-// oracle; the hook saw regex alone.
+// oracle; the hook saw regex alone. What a session was given is the live
+// ledger's alone — replay never sees an injection — so it always stays.
 export async function readHistory (replayPath = defaultLedgerPath(), livePath = liveLedgerPath()) {
   const replayed = await readLedger(replayPath)
   const sessions = new Set(replayed.map(r => r.sessionId))
-  const live = (await readLedger(livePath)).filter(r => !sessions.has(r.sessionId))
+  const live = (await readLedger(livePath)).filter(r => r.label === 'injected' || !sessions.has(r.sessionId))
   return [...replayed, ...live].sort((a, b) => String(a.ts).localeCompare(String(b.ts)))
 }

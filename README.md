@@ -52,7 +52,7 @@ npx limbic efficacy    # did an accepted rule work? keep, graduate, revise or ch
 npx limbic graduate    # a rule that worked moves into your CLAUDE.md; limbic stops injecting it
 npx limbic retrodict   # the thesis benchmark, honest either way (--online for per-event)
 npx limbic calibrate   # score the cascade against your hand labels (--sample first)
-npx limbic install     # prints the hooks block for ~/.claude/settings.json — never edits it
+npx limbic install     # prints the hooks block for ~/.claude/settings.json — never edits it (--remind adds the remind hook)
 ```
 
 Live hooks exist and are opt-in by hand: `hooks/classify.js` ledgers every prompt

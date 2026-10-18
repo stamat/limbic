@@ -60,9 +60,12 @@ usage:
       print a proposal: additions it lacks, rules it already covers by hand.
       Prints only — the file is yours to edit.
 
-  limbic install [--predict]
+  limbic install [--predict] [--remind]
       Print the hooks block for ~/.claude/settings.json — never edits it.
       --predict includes the opt-in Stop hook (one Haiku call per turn).
+      --remind includes a PreToolUse hook that repeats your CLAUDE.md
+      "Commits" section before the session's first git commit — copy it
+      for other headings and commands.
 
 Everything runs locally; only --llm ever calls a model. --llm accepts
 --max-calls N (default 60) — the per-run cap on claude invocations.`
@@ -183,10 +186,11 @@ if (cmd === 'replay') {
   }
   for (const e of efficacy(await history(), rules)) {
     const w = s => `${s.per1000.toFixed(1)}/1000 (${s.hits} of ${s.prompts})`
-    console.log(`${e.action.padEnd(9)} ${e.file}  since ${e.since}  ${e.verdict}\n    before ${w(e.before)}  after ${w(e.after)}`)
+    console.log(`${e.action.padEnd(9)} ${e.file}  since ${e.since}  ${e.verdict}\n    before ${w(e.before)}  after ${w(e.after)}  given ${e.given} sessions, missed in ${e.missed}`)
+    for (const m of e.misses.slice(0, 2)) console.log(`    ✗ ${m.replace(/\s+/g, ' ').slice(0, 100)}`)
   }
   console.log('\ngraduate: paste the rule into your CLAUDE.md, then `limbic graduate <file>`')
-  console.log('revise: edit the statement, or `limbic reject <file>`')
+  console.log('revise: edit the statement, or `limbic reject <file>` — the ✗ lines are sessions that had the rule and missed it')
   console.log('check: no corrective lesson before acceptance matched its evidence — read it, keep or reject')
 } else if (cmd === 'graduate') {
   const { listRules, setStatus } = await import('../src/rules.js')
@@ -329,6 +333,12 @@ if (cmd === 'replay') {
   }
   if (args.includes('--predict')) {
     hooks.Stop = [{ hooks: [{ type: 'command', command: `node "${jn(root, 'hooks', 'predict.js')}"`, timeout: 90 }] }]
+  }
+  if (args.includes('--remind')) {
+    hooks.PreToolUse = [{
+      matcher: 'Bash',
+      hooks: [{ type: 'command', if: 'Bash(git commit *)', command: `node "${jn(root, 'hooks', 'remind.js')}" Commits`, timeout: 5 }]
+    }]
   }
   console.log('add to ~/.claude/settings.json under "hooks":\n')
   console.log(JSON.stringify(hooks, null, 2))

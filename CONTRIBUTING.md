@@ -27,7 +27,9 @@ context. That path is the attack surface:
 - **Prompt injection into memory.** A malicious or manipulated "correction" — pasted
   text, tool output echoed into a prompt, a compromised MCP result — must not be able to
   write itself into future sessions. Defenses, in order: only entries with
-  `origin.kind === "human"` and no sidechain flag are ever classified; rules are
+  `origin.kind === "human"` and no sidechain flag are ever classified; IDE blocks,
+  task notices and pasted content are stripped before classification, so a pasted
+  "remember: …" is never read as a directive the user typed; rules are
   *proposed*, never auto-activated — a human approves every promotion; proposed rules
   are plain text in a file you can read before accepting.
 - **Where the model does not hold:** if an attacker already types into your terminal or
