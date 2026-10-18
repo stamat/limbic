@@ -10,6 +10,7 @@ All notable changes to limbic are documented here. The format follows
 
 - **`directive` and `missed_step` labels.** "Remember in ~/.claude that …" becomes a proposed rule from one prompt, and "did we update the docs?" joins the corrections that dream clusters.
 - **`limbic efficacy`** gives each accepted rule its rate of similar lessons per 1000 prompts, before and after the day you accepted it.
+- **A rule life cycle.** `efficacy` names each rule's next step (keep, graduate, revise or check), and `limbic graduate` stops injecting a rule once your CLAUDE.md states it.
 - **Rules scoped to their project.** A rule learned in one project goes only to sessions in that project, and `dream --llm` phrases rules in the words of your CLAUDE.md and files the ones it already states as `covered`.
 - **RESEARCH.md** — correction-detection research report: what the field calls the
   problem (other-initiated repair, implicit feedback, developer pushback), the

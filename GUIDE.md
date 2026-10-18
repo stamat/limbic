@@ -14,7 +14,8 @@ npx limbic replay --llm     # rebuild the ledger from your Claude Code history
 npx limbic stats            # what the ledger says about you
 npx limbic dream --llm      # cluster corrections into proposed rules
 npx limbic rules            # read proposals; accept/reject each by hand
-npx limbic efficacy         # did an accepted rule work?
+npx limbic efficacy         # did an accepted rule work? keep, graduate, revise or check
+npx limbic graduate <file>  # after you paste a rule that worked into your CLAUDE.md
 npx limbic retrodict --llm --online --min 2   # the thesis benchmark
 npx limbic curate --llm     # propose accepted rules into your CLAUDE.md
 npx limbic install          # print the hooks block; paste it yourself
@@ -92,7 +93,19 @@ why-question. A verbatim resend after an error is neutral.
   means lexical overlap at the same threshold that pairs two events without
   an oracle. Fewer than 200 prompts after acceptance reads `too early`. A
   lower rate is evidence, not proof: you may only have stopped working where
-  the mistake lives.
+  the mistake lives. Each rule also gets an action, the rule's life cycle:
+
+  | Action | When | Do |
+  |---|---|---|
+  | `keep` | fewer than 1000 prompts after acceptance | nothing yet |
+  | `graduate` | the rate after is lower than before | paste the rule into your CLAUDE.md, then `limbic graduate <file>` |
+  | `revise` | the rate after is the same or higher | edit the statement, or reject the rule |
+  | `check` | no corrective lesson before acceptance matched the evidence, so the effect cannot be read | read the rule; keep it or reject it |
+- **`graduate <file> [--claude-md FILE]`** — sets an accepted rule to
+  `graduated`, and `inject` stops sending it. It refuses until a line in your
+  CLAUDE.md states the rule (lexical overlap, as above): limbic never edits
+  the file, and a rule must not leave the sessions without a home. `curate`
+  names the rules your CLAUDE.md already covers; graduate those too.
 - **`retrodict [--llm] [--online] [--min N]`** — the thesis benchmark.
   Half-split: rules from the first half of history scored against the second.
   `--online`: for every corrective event, was a covering cluster already
@@ -132,7 +145,7 @@ of the cwd — `/Users/me/shop.rs` is `-Users-me-shop-rs` — in both ledgers), 
 `gitBranch`, `text` (capped at 300 chars — the ledger is not a transcript
 store, by refusal).
 
-Rule file: frontmatter (`status: proposed|accepted|rejected|covered`, `date`,
+Rule file: frontmatter (`status: proposed|accepted|rejected|covered|graduated`, `date`,
 `accepted` once accepted, `size`, `labels`, `projects`, `project` when the
 evidence comes from one project, `signature`) then the statement and its
 evidence lines. Edit the statement freely — the file is the rule. A rule you

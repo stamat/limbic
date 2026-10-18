@@ -25,14 +25,20 @@ usage:
       it, or on any failure, rules carry an editable template statement.
 
   limbic rules [--all]
-      List proposed rules (--all includes accepted, rejected and covered).
+      List proposed rules (--all includes accepted, rejected, covered and
+      graduated).
 
   limbic accept <file> | reject <file>
       Promote or suppress a proposed rule. Rejected clusters stay suppressed.
 
   limbic efficacy [--ledger FILE]
       For each accepted rule: lessons like its evidence per 1000 prompts,
-      before the day it was accepted and after. Lexical match only.
+      before the day it was accepted and after, and what to do with it —
+      keep, graduate, revise or check. Lexical match only.
+
+  limbic graduate <file> [--claude-md FILE]
+      Stop injecting a rule that now lives in your CLAUDE.md. Refuses until a
+      line there states it: paste it first, limbic never edits the file.
 
   limbic retrodict [--ledger FILE] [--llm] [--online] [--min N]
       The thesis benchmark: rules from the first half of history scored
@@ -175,8 +181,29 @@ if (cmd === 'replay') {
   }
   for (const e of efficacy(await history(), rules)) {
     const w = s => `${s.per1000.toFixed(1)}/1000 (${s.hits} of ${s.prompts})`
-    console.log(`${e.verdict.padEnd(9)} ${e.file}  since ${e.since}\n    before ${w(e.before)}  after ${w(e.after)}`)
+    console.log(`${e.action.padEnd(9)} ${e.file}  since ${e.since}  ${e.verdict}\n    before ${w(e.before)}  after ${w(e.after)}`)
   }
+  console.log('\ngraduate: paste the rule into your CLAUDE.md, then `limbic graduate <file>`')
+  console.log('revise: edit the statement, or `limbic reject <file>`')
+  console.log('check: no corrective lesson before acceptance matched its evidence — read it, keep or reject')
+} else if (cmd === 'graduate') {
+  const { listRules, setStatus } = await import('../src/rules.js')
+  const { doctrineHolds } = await import('../src/efficacy.js')
+  const { doctrineLines } = await import('../src/curate.js')
+  const file = args[0]
+  const rule = (await listRules()).find(r => r.file === file)
+  if (!rule || rule.meta.status !== 'accepted') {
+    console.error(`usage: limbic graduate <file> — an accepted rule (see \`limbic rules --all\`)`)
+    process.exit(1)
+  }
+  const doctrine = await readDoctrine()
+  const statement = rule.body.split('## Evidence')[0].replace('## Proposed rule', '').trim()
+  if (!doctrine || !doctrineHolds(statement, doctrineLines(doctrine))) {
+    console.error(`no line in your CLAUDE.md states this rule yet — paste it, then graduate:\n\n- ${statement}`)
+    process.exit(1)
+  }
+  await setStatus(file, 'graduated')
+  console.log(`${file} → graduated: your CLAUDE.md carries it, sessions no longer get it from limbic`)
 } else if (cmd === 'retrodict') {
   const { retrodict, retrodictOnline } = await import('../src/retrodict.js')
   const oracle = await makeOracle()
@@ -275,8 +302,8 @@ if (cmd === 'replay') {
   const { additions, covered, doctrineLines } = await curate({ rules, doctrine, oracle, embedder })
   console.log(`doctrine: ${doctrinePath} (${doctrineLines} candidate lines)  accepted rules: ${rules.length}\n`)
   if (covered.length) {
-    console.log('already covered by your hand — consider retiring the rule:')
-    for (const c of covered) console.log(`  ~ ${c.rule.statement.slice(0, 70)}\n    ≈ "${c.line.slice(0, 70)}" (cos ${c.cos.toFixed(2)})`)
+    console.log('already covered by your hand — `limbic graduate <file>` stops injecting it:')
+    for (const c of covered) console.log(`  ~ ${c.rule.file}: ${c.rule.statement.slice(0, 70)}\n    ≈ "${c.line.slice(0, 70)}" (cos ${c.cos.toFixed(2)})`)
     console.log('')
   }
   if (additions.length) {
