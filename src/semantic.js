@@ -15,7 +15,11 @@ import { cosine, EMB_FLOOR } from './embed.js'
 // honest retrodiction run counted four such matches as "preventable".
 const GENERIC = new Set([
   'fix', 'all', 'still', 'work', 'working', 'broken', 'issue', 'issues',
-  'need', 'needs', 'wrong', 'bug', 'error', 'problem', 'update', 'change'
+  'need', 'needs', 'wrong', 'bug', 'error', 'problem', 'update', 'change',
+  // Contractions and hedges glued two clusters on real history: "doesn't
+  // work" four times over four unrelated defects, and "I don't think" over
+  // four unrelated opinions.
+  "doesn't", "don't", "it's", 'think'
 ])
 
 // Merging is average-linkage over the confirmed-pair graph, not union-find:

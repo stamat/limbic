@@ -46,8 +46,9 @@ before believing it:
 ```sh
 npx limbic replay      # rebuild the ledger from ~/.claude/projects history
 npx limbic stats       # correction rates, surprise baseline, per-session sparklines
-npx limbic dream       # cluster corrections into proposed rules (--llm to phrase via claude -p)
+npx limbic dream       # cluster corrections and missed steps into proposed rules (--llm to phrase via claude -p)
 npx limbic rules       # review proposals; accept/reject each by hand
+npx limbic efficacy    # did an accepted rule work? lessons like its evidence, before and after
 npx limbic retrodict   # the thesis benchmark, honest either way (--online for per-event)
 npx limbic calibrate   # score the cascade against your hand labels (--sample first)
 npx limbic install     # prints the hooks block for ~/.claude/settings.json — never edits it
@@ -55,7 +56,7 @@ npx limbic install     # prints the hooks block for ~/.claude/settings.json — 
 
 Live hooks exist and are opt-in by hand: `hooks/classify.js` ledgers every prompt
 (regex only, exits fast, never blocks), `hooks/inject.js` injects *accepted rules
-only* at session start, `hooks/predict.js` (add it yourself, it costs one Haiku call
+only* at session start — a rule learned in one project only into that project, `hooks/predict.js` (add it yourself, it costs one Haiku call
 per turn) predicts your next message so the following prompt scores hit or miss.
 Day-one results, defects found and the improvement plan: [REPORT.md](REPORT.md).
 Detection research behind the next stage: [RESEARCH.md](RESEARCH.md). How a

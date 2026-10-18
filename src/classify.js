@@ -52,11 +52,39 @@ const CHALLENGE = [
   /\bi don'?t like\b/i
 ]
 
+// A standing instruction the user asks the agent to keep — the one prompt that
+// states its rule outright instead of leaving dream to deduce it. Precision
+// over recall again: on 4677 real prompts, "always", "never" and "remember"
+// mid-sentence were feature specs every time ("remember that it was closed on
+// relaunch"), so a cue must name a memory place or open the prompt — and
+// "remember" must be the verb aimed at it: "a note about me for CLAUDE.md?"
+// and "include remember regardless of auto-memory" both named a place.
+const DIRECTIVE = [
+  /\bremember (in|to|this|that)\b[^.?!]{0,40}(\bmemory\b|\bclaude\.md\b|~\/\.claude|\bagents\.md\b)/i,
+  /\b(save|note|record|keep|add|put|write) (this|that|it)\b[^.?!]{0,30}(\bmemory\b|\bclaude\.md\b|~\/\.claude|\bagents\.md\b)/i,
+  /^(please )?remember( this| that)?\s*[:,-]/i,
+  /\bfrom now on,? (always|never|please|you|use|don'?t|do not)\b/i,
+  /^(always|never) (use|do|run|write|put|add|keep|ask|check|commit|prefer|leave|make)\b/i
+]
+
+// A step the agent should have taken unasked, asked for after delivery —
+// a lesson, not a complaint, so it feeds dream and never the correction chain.
+// The question form ("did we update the docs?") is the reliable one; "also
+// update the docs" was dropped, it opens new tasks as often as missed ones.
+const MISSED_STEP = [
+  /\b(did|do|should)(n'?t)? we (also )?(need to )?(update|add|run|write|bump|document)\b[^.?!]{0,30}\b(docs?|readme|changelog|tests?|types?|version)\b/i,
+  /\b(make sure|don'?t forget)\b[^.?!]{0,30}\b(update|add|run|write|bump|document)\b[^.?!]{0,30}\b(docs?|readme|changelog|tests?|types?|version|examples?)\b/i
+]
+
 const ACCEPT = [
   /^(thanks|thank you|great|perfect|nice|good|awesome|lgtm|ship it)\b/i,
   /\bworks now\b/i,
   /\bwell done\b/i,
-  /\blooks good\b/i
+  /\blooks good\b/i,
+  // Asking to commit is accepting the work: 294 such prompts against 22
+  // spoken accepts. It also follows work the user fixed by hand, so it
+  // resets the chain and never feeds a rule.
+  /^(ok(ay)?|yes|yep|so|now|then)?[,. ]*(let'?s |just |please )?(commit|push)\b/i
 ]
 
 // Diagnostic questions wear corrective words without corrective intent —
@@ -68,14 +96,22 @@ const ACCEPT = [
 // report about delivered work, not curiosity.
 const DIAGNOSTIC_OPENER = /^(does|do|is|are|can|could|should|would|what(?! happened)|where|when|how)\b/i
 
+// Order is precedence. A directive outranks a correction — "no, remember in
+// ~/.claude that changelog notes stay bare" states the rule it corrects
+// toward — and a missed step outranks accept, so "good, did we update the
+// docs?" is the lesson, not the praise.
 const LABELS = [
+  ['directive', DIRECTIVE],
   ['correction', CORRECTION],
   ['fix_request', FIX_REQUEST],
   ['challenge', CHALLENGE],
+  ['missed_step', MISSED_STEP],
   ['accept', ACCEPT]
 ]
 
-const GUARDED = new Set(['fix_request'])
+// A directive is guarded too: a question about what to remember is not an
+// instruction to remember it.
+const GUARDED = new Set(['fix_request', 'directive'])
 
 export function classify (text) {
   for (const [label, cues] of LABELS) {

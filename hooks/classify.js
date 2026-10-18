@@ -12,12 +12,14 @@ import { join, dirname } from 'node:path'
 import { homedir } from 'node:os'
 import { classify } from '../src/classify.js'
 import { momentary, CORRECTIVE } from '../src/surprise.js'
+import { livePrompt } from '../src/transcript.js'
+import { projectSlug } from '../src/ledger.js'
 
 if (process.env.LIMBIC_ORACLE) process.exit(0)
 
 try {
   const input = JSON.parse(readFileSync(0, 'utf8'))
-  const text = (input.prompt ?? '').trim()
+  const text = livePrompt(input.prompt ?? '')
   if (text) {
     const { label, cue } = classify(text)
     const dir = join(homedir(), '.limbic')
@@ -60,7 +62,7 @@ try {
     } catch {}
     await appendFile(join(dir, 'live-ledger.jsonl'), JSON.stringify({
       ts: new Date().toISOString(),
-      project: input.cwd ?? null,
+      project: projectSlug(input.cwd ?? null),
       sessionId: sid,
       label,
       cue,

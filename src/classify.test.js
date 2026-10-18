@@ -71,3 +71,47 @@ test('restoring to a previous setting is a correction, not a fresh task', () => 
 test('output that is hard to read is a challenge to delivered work', () => {
   assert.equal(classify('but there is a lot of output which is hard to read').label, 'challenge')
 })
+
+// The three labels below were cut against 4677 real prompts (2026-10-18):
+// every negative is a real prompt that a looser cue caught.
+
+test('a request to remember, naming where, is a directive even inside a correction', () => {
+  for (const text of [
+    "no they went far from the voice, let's remember in the ~/.claude that changelog notes should be concise",
+    'remember: commit subjects stay lowercase',
+    'from now on, always run the linter before you commit',
+    'save this to CLAUDE.md: tables for every comparison'
+  ]) assert.equal(classify(text).label, 'directive', `"${text}" asks for a standing rule`)
+})
+
+test('remember, always and never in a feature spec are not directives', () => {
+  for (const text of [
+    'if the app is manually closed we should remember that it was closed on relaunch',
+    'always play is kinda a dumb name',
+    "let's make sure we always have two rows even on 375",
+    'is a note about me as a person valuable for CLAUDE.md?',
+    "let's also include remember regardless of claude code auto-memory"
+  ]) assert.notEqual(classify(text).label, 'directive', `"${text}" is a spec or a question, not a memory request`)
+})
+
+test('asking after delivery whether the docs were updated is a missed step', () => {
+  for (const text of [
+    'did we need to update the docs as well?',
+    'should we update the doc?',
+    "don't forget to update /dev mail examples",
+    'good, did we update the readme?'
+  ]) assert.equal(classify(text).label, 'missed_step', `"${text}" names a step the agent skipped`)
+})
+
+test('a new task that mentions the docs is not a missed step', () => {
+  for (const text of [
+    "let's also add stylelint and update the readme",
+    "let's do it, make sure tests are not gamed"
+  ]) assert.notEqual(classify(text).label, 'missed_step', `"${text}" is work, not a lesson`)
+})
+
+test('asking to commit accepts the work, unless it opens with a correction', () => {
+  assert.equal(classify('commit and push').label, 'accept')
+  assert.equal(classify("let's commit the fix").label, 'accept')
+  assert.equal(classify('no just commit and push').label, 'correction', 'the "no" outranks the commit')
+})

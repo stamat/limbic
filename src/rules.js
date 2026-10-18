@@ -37,29 +37,35 @@ export async function listRules (dir = rulesDir()) {
   return out
 }
 
-export async function setStatus (file, status, dir = rulesDir()) {
+// `accepted:` dates the moment a rule starts reaching sessions — efficacy
+// splits history there, and the proposal `date` is days or months earlier.
+export async function setStatus (file, status, dir = rulesDir(), today = new Date().toISOString().slice(0, 10)) {
   const path = join(dir, file)
   const raw = await readFile(path, 'utf8')
-  const updated = raw.replace(/^(---[\s\S]*?)status: *[a-z]+/m, `$1status: ${status}`)
-  if (updated === raw && !/status:/.test(raw)) {
-    throw new Error(`${file} has no status field to update`)
-  }
+  if (!/^status:/m.test(raw)) throw new Error(`${file} has no status field to update`)
+  let updated = raw.replace(/^accepted: .*\n/m, '').replace(/^status: *[a-z]+/m, `status: ${status}`)
+  if (status === 'accepted') updated = updated.replace(/^status: accepted/m, `status: accepted\naccepted: ${today}`)
   await writeFile(path, updated)
   return parseRule(updated, file)
 }
 
-export async function writeRule (rule, dir = rulesDir()) {
+// A rule deduced inside one project is scoped to it (`project:`), and inject
+// gives it only to sessions there: a sidebar-shadow lesson from one repo is
+// noise in every other. Two projects or more is a rule about the agent, not a
+// codebase — no `project:`, every session.
+export async function writeRule (rule, dir = rulesDir(), status = 'proposed') {
   await mkdir(dir, { recursive: true })
   const file = `${rule.signature}.md`
   const evidence = rule.events
-    .map(e => `- (${e.project.replace(/^-Users-[^-]+-/, '')}) ${e.text.replace(/\n/g, ' ')}`)
+    .map(e => `- (${String(e.project).replace(/^-Users-[^-]+-/, '')}) ${e.text.replace(/\n/g, ' ')}`)
     .join('\n')
+  const scope = rule.projects.length === 1 && rule.projects[0] ? `\nproject: ${rule.projects[0]}` : ''
   const content = `---
-status: proposed
+status: ${status}
 date: ${new Date().toISOString().slice(0, 10)}
 size: ${rule.size}
 labels: ${rule.labels.join(', ')}
-projects: ${rule.projects.length}
+projects: ${rule.projects.length}${scope}
 signature: ${rule.signature}
 ---
 

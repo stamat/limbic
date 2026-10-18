@@ -21,6 +21,10 @@ export function ema (prev, value, alpha = 0.3) {
 // are not prompts: recorded, counted, never chained or classified.
 export const CORRECTIVE = new Set(['correction', 'fix_request', 'challenge', 'rephrase'])
 export const BEHAVIORAL = new Set(['interrupt', 'denial', 'self_correction'])
+// What dream clusters: every corrective label, plus a missed step — a lesson
+// with no surprise in it. A directive is not here: it states its own rule and
+// needs no cluster to deduce one.
+export const LESSON = new Set([...CORRECTIVE, 'missed_step'])
 
 // Folds a session's labeled prompts into surprise-scored events.
 // Any non-corrective prompt resets the chain: chain measures an unbroken run

@@ -2,7 +2,7 @@
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 import { replay } from '../src/replay.js'
-import { readLedger, defaultLedgerPath } from '../src/ledger.js'
+import { readLedger, readHistory, defaultLedgerPath } from '../src/ledger.js'
 import { aggregate, render } from '../src/stats.js'
 
 const HELP = `limbic — an agent's memory gate
@@ -15,17 +15,24 @@ usage:
   limbic stats [--ledger FILE]
       Correction rates, surprise baseline, per-session sparklines.
 
-  limbic dream [--ledger FILE] [--llm] [--min N]
-      Cluster corrective events into proposed rules in ~/.limbic/rules/.
+  limbic dream [--ledger FILE] [--llm] [--min N] [--claude-md FILE]
+      Cluster corrections and missed steps into proposed rules in
+      ~/.limbic/rules/, and propose each "remember …" directive as its own.
       Proposed, never activated: accept or reject each one yourself.
-      --llm phrases rules via \`claude -p\` (subscription auth); without it,
-      or on any failure, rules carry an editable template statement.
+      Reads the replay and live ledgers both unless --ledger names one.
+      --llm phrases rules via \`claude -p\` (subscription auth) in the words of
+      your CLAUDE.md, and files a rule it already states as covered; without
+      it, or on any failure, rules carry an editable template statement.
 
   limbic rules [--all]
-      List proposed rules (--all includes accepted and rejected).
+      List proposed rules (--all includes accepted, rejected and covered).
 
   limbic accept <file> | reject <file>
       Promote or suppress a proposed rule. Rejected clusters stay suppressed.
+
+  limbic efficacy [--ledger FILE]
+      For each accepted rule: lessons like its evidence per 1000 prompts,
+      before the day it was accepted and after. Lexical match only.
 
   limbic retrodict [--ledger FILE] [--llm] [--online] [--min N]
       The thesis benchmark: rules from the first half of history scored
@@ -75,6 +82,25 @@ async function makeEmbedder () {
   return new Embedder()
 }
 
+// Replay's rebuild alone loses every session Claude Code already deleted; the
+// live ledger is the only copy of those, so readers default to both.
+function history () {
+  return args.includes('--ledger') ? readLedger(flag(args, '--ledger')) : readHistory()
+}
+
+// The doctrine is optional context: missing, the rules are phrased without it
+// and the run says so, never fails.
+async function readDoctrine () {
+  const { readFile } = await import('node:fs/promises')
+  const path = flag(args, '--claude-md', join(homedir(), '.claude', 'CLAUDE.md'))
+  try {
+    return await readFile(path, 'utf8')
+  } catch {
+    console.log(`doctrine: cannot read ${path} — rules phrased without it`)
+    return null
+  }
+}
+
 function oracleReport (oracle, embedder) {
   if (oracle) console.log(`oracle: ${oracle.calls} calls, ${oracle.cacheHits} cache hits`)
   if (embedder) {
@@ -106,15 +132,17 @@ if (cmd === 'replay') {
   const { dream } = await import('../src/dream.js')
   const oracle = await makeOracle()
   const embedder = await makeEmbedder()
-  const records = await readLedger(flag(args, '--ledger', defaultLedgerPath()))
+  const records = await history()
+  const doctrine = args.includes('--llm') ? await readDoctrine() : null
   const summary = await dream({
     records,
     useLlm: args.includes('--llm'),
     oracle,
     embedder,
+    doctrine,
     minSize: Number(flag(args, '--min', 3))
   })
-  console.log(`corrective ${summary.corrective}  clusters ${summary.clusters}  (pairs asked ${summary.asked}, confirmed ${summary.confirmed})  proposed ${summary.proposed}  already known ${summary.skippedKnown}`)
+  console.log(`lessons ${summary.lessons}  directives ${summary.directives}  clusters ${summary.clusters}  (pairs asked ${summary.asked}, confirmed ${summary.confirmed})  proposed ${summary.proposed}  covered ${summary.covered}  already known ${summary.skippedKnown}`)
   oracleReport(oracle, embedder)
   if (summary.proposed) console.log('review with: limbic rules')
 } else if (cmd === 'rules') {
@@ -137,6 +165,18 @@ if (cmd === 'replay') {
   }
   await setStatus(file, cmd === 'accept' ? 'accepted' : 'rejected')
   console.log(`${file} → ${cmd}ed`)
+} else if (cmd === 'efficacy') {
+  const { listRules } = await import('../src/rules.js')
+  const { efficacy } = await import('../src/efficacy.js')
+  const rules = (await listRules()).filter(r => r.meta.status === 'accepted')
+  if (!rules.length) {
+    console.error('no accepted rules — review proposals with `limbic rules` first')
+    process.exit(1)
+  }
+  for (const e of efficacy(await history(), rules)) {
+    const w = s => `${s.per1000.toFixed(1)}/1000 (${s.hits} of ${s.prompts})`
+    console.log(`${e.verdict.padEnd(9)} ${e.file}  since ${e.since}\n    before ${w(e.before)}  after ${w(e.after)}`)
+  }
 } else if (cmd === 'retrodict') {
   const { retrodict, retrodictOnline } = await import('../src/retrodict.js')
   const oracle = await makeOracle()
@@ -163,7 +203,7 @@ if (cmd === 'replay') {
     })
     console.log(`sampled ${added} new items — corpus now ${total}`)
     console.log(`fill in "human" by editing ${corpusPath}`)
-    console.log('labels: correction | fix_request | challenge | rephrase | accept | neutral')
+    console.log('labels: correction | fix_request | challenge | rephrase | missed_step | directive | accept | neutral')
   } else {
     const all = await readCorpus(corpusPath)
     const corpus = all.filter(c => c.human)

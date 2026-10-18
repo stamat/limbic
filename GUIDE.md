@@ -14,6 +14,7 @@ npx limbic replay --llm     # rebuild the ledger from your Claude Code history
 npx limbic stats            # what the ledger says about you
 npx limbic dream --llm      # cluster corrections into proposed rules
 npx limbic rules            # read proposals; accept/reject each by hand
+npx limbic efficacy         # did an accepted rule work?
 npx limbic retrodict --llm --online --min 2   # the thesis benchmark
 npx limbic curate --llm     # propose accepted rules into your CLAUDE.md
 npx limbic install          # print the hooks block; paste it yourself
@@ -55,8 +56,10 @@ prevents this have saved the exchange?
 | `fix_request` | delivered work reported broken | "the dropdown is still broken on mobile" |
 | `challenge` | pushback on a decision or the quality of delivered work | "why do we need globals?", "too much spacing between the icons" |
 | `rephrase` | the same ask reworded, previous delivery missed | detected, not typed |
-| `accept` | the work landed | "works now, thanks" |
-| `neutral` | everything else: tasks, questions, information, thinking aloud | "commit", "em or rem what's the difference?" |
+| `missed_step` | a step the agent should have taken unasked. Not corrective: no surprise, no chain. Dream clusters it with the corrections | "did we update the docs?", "don't forget to update the examples" |
+| `directive` | a standing instruction the user asks the agent to keep. Dream proposes each one alone | "remember in ~/.claude that changelog notes stay bare", "from now on, always run the linter" |
+| `accept` | the work landed. A request to commit or push counts | "works now, thanks", "commit and push" |
+| `neutral` | everything else: tasks, questions, information, thinking aloud | "em or rem what's the difference?" |
 | `interrupt` / `denial` / `self_correction` | behavioral events, not prompts | — |
 
 Judgment calls that recur: a design question ("was it better to…?",
@@ -72,11 +75,24 @@ why-question. A verbatim resend after an error is neutral.
   same history, same ledger, byte for byte. `--llm` adds the oracle layers.
 - **`stats [--ledger FILE]`** — correction rates against your own baseline,
   per-session sparklines, behavioral counts, top cues.
-- **`dream [--llm] [--min N]`** — cluster corrective events into proposed
-  rules under `~/.limbic/rules/`. At `--min 2` a pair is admitted only when
-  embedding and oracle both confirm it. Proposes at most 10 per run.
+- **`dream [--ledger FILE] [--llm] [--min N] [--claude-md FILE]`** — cluster
+  corrective and missed-step events into proposed rules under
+  `~/.limbic/rules/`, and propose each directive as its own rule. At `--min 2`
+  a pair is admitted only when embedding and oracle both confirm it. Proposes
+  at most 10 per run. Reads both ledgers unless `--ledger` names one: a
+  session in both is replay's. With `--llm` each rule is phrased with your
+  CLAUDE.md (default `~/.claude/CLAUDE.md`) in the prompt, in its words. A
+  rule the file already states is filed as `covered`: it is not proposed,
+  and it does not come back.
 - **`rules [--all]`** / **`accept <file>`** / **`reject <file>`** — the
-  propose gate. A rejected cluster never re-proposes.
+  propose gate. A rejected cluster never re-proposes. `accept` writes the
+  date into the rule as `accepted:`.
+- **`efficacy [--ledger FILE]`** — for each accepted rule, the lessons like
+  its evidence per 1000 prompts, before the `accepted:` date and after. Like
+  means lexical overlap at the same threshold that pairs two events without
+  an oracle. Fewer than 200 prompts after acceptance reads `too early`. A
+  lower rate is evidence, not proof: you may only have stopped working where
+  the mistake lives.
 - **`retrodict [--llm] [--online] [--min N]`** — the thesis benchmark.
   Half-split: rules from the first half of history scored against the second.
   `--online`: for every corrective event, was a covering cluster already
@@ -102,22 +118,26 @@ back those up).
 | Path | What | Written by |
 |---|---|---|
 | `ledger.jsonl` | one record per prompt/event | `replay` (full rebuild) |
-| `live-ledger.jsonl` | same shape, appended live | classify hook |
+| `live-ledger.jsonl` | same shape, appended live. The only copy of a session after Claude Code deletes its transcript (`cleanupPeriodDays`, 30 by default) | classify hook |
 | `live-state.json` | per-session chain counters, bounded at 50 | classify hook |
 | `prediction.json` | the standing next-message prediction, consumed on scoring | predict hook |
-| `rules/*.md` | one rule per file, status in frontmatter | `dream`, `accept`, `reject` |
+| `rules/*.md` | one rule per file, status in frontmatter | `dream`, `accept`, `reject`, you |
 | `corpus/labels.jsonl` | calibration corpus, `human` field is yours | `calibrate --sample`, you |
 | `cache/oracle.jsonl` | every oracle verdict, keyed by instruction version | oracle |
 | `cache/embeddings.jsonl` | every embedded text, keyed by model | embedder |
 
-Ledger record fields: `ts`, `project`, `sessionId`, `label`, `cue`, `chain`
+Ledger record fields: `ts`, `project` (the Claude Code history directory name
+of the cwd — `/Users/me/shop.rs` is `-Users-me-shop-rs` — in both ledgers), `sessionId`, `label`, `cue`, `chain`
 (unbroken corrective run), `surprise` (`1 − 0.5ⁿ`), `trace` (EMA),
 `gitBranch`, `text` (capped at 300 chars — the ledger is not a transcript
 store, by refusal).
 
-Rule file: frontmatter (`status: proposed|accepted|rejected`, `date`, `size`,
-`labels`, `projects`, `signature`) then the statement and its evidence lines.
-Edit the statement freely — the file is the rule.
+Rule file: frontmatter (`status: proposed|accepted|rejected|covered`, `date`,
+`accepted` once accepted, `size`, `labels`, `projects`, `project` when the
+evidence comes from one project, `signature`) then the statement and its
+evidence lines. Edit the statement freely — the file is the rule. A rule you
+write by hand needs only `status`, `size` and `signature`. Remove `project:`
+to give a rule to every session.
 
 Corpus item: frozen classifier inputs (`text`, `prevPrompt`, `context`) plus
 `cascade` (the machine's label at sample time) and `human` (yours; `labeler`
@@ -148,7 +168,9 @@ that blocks a prompt is worse than no memory tool:
   ledger, keeps per-session chains, scores and consumes any standing
   prediction. The oracle never runs here.
 - **inject** (`SessionStart`): prints accepted rules — and only accepted —
-  into session context. The propose gate is the security boundary.
+  into session context. The propose gate is the security boundary. A rule
+  with `project:` goes only to a session whose cwd is that project. A session
+  that gives no cwd gets the global rules alone.
 - **predict** (`Stop`, opt-in via `--predict`): one Haiku call per turn,
   predicts your next message from the turn's tail; the next prompt scores it
   hit or miss.
@@ -159,6 +181,7 @@ that blocks a prompt is worse than no memory tool:
 |---|---|
 | `--llm` not passed | deterministic layers only; no calls, no embeddings |
 | `claude` binary absent or timing out | oracle answers null; deterministic labels stand; rules get template statements |
+| CLAUDE.md absent for `dream --llm` | rules are phrased without it, and the run says so; nothing is filed as covered |
 | ollama not running | one failed call marks it absent for the run; oracle-only path, stated in the report line |
 | oracle cap reached | remaining items stay at their deterministic label |
 | a session file vanishes mid-replay | skipped and counted, never fatal |

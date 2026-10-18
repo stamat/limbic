@@ -11,6 +11,18 @@ export function defaultLedgerPath () {
   return join(homedir(), '.limbic', 'ledger.jsonl')
 }
 
+export function liveLedgerPath () {
+  return join(homedir(), '.limbic', 'live-ledger.jsonl')
+}
+
+// Claude Code names a project's history directory after its cwd with `/` and
+// `.` (seen; other characters assumed) turned into `-`. Replay reads that
+// name, the live hook sees the raw cwd: until both went through here, one
+// project was two keys in stats and a rule could not be scoped to either.
+export function projectSlug (project) {
+  return typeof project === 'string' ? project.replace(/[^A-Za-z0-9]/g, '-') : project
+}
+
 export function toRecord (event, { project, sessionId }) {
   return {
     ts: event.ts,
@@ -49,8 +61,21 @@ export async function readLedger (path) {
   for (const line of raw.split('\n')) {
     if (!line.trim()) continue
     try {
-      out.push(JSON.parse(line))
+      const r = JSON.parse(line)
+      out.push({ ...r, project: projectSlug(r.project) })
     } catch {}
   }
   return out
+}
+
+// The whole history is two files: replay's rebuild and the hook's appends.
+// Replay cannot rebuild what Claude Code already deleted (transcripts expire
+// after `cleanupPeriodDays`), so the live ledger is the only copy of older
+// sessions. A session in both is replay's — it saw the previous turn and the
+// oracle; the hook saw regex alone.
+export async function readHistory (replayPath = defaultLedgerPath(), livePath = liveLedgerPath()) {
+  const replayed = await readLedger(replayPath)
+  const sessions = new Set(replayed.map(r => r.sessionId))
+  const live = (await readLedger(livePath)).filter(r => !sessions.has(r.sessionId))
+  return [...replayed, ...live].sort((a, b) => String(a.ts).localeCompare(String(b.ts)))
 }

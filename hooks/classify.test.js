@@ -52,6 +52,26 @@ test('a scored prediction is consumed, never rescored against later prompts', as
   await assert.rejects(access(predictionPath), 'the prediction file is consumed from disk')
 })
 
+test('a task notification is plumbing, never a prompt in the ledger', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'limbic-hook-'))
+  run(home, { prompt: '<task-notification> <task-id>a1</task-id> <status>completed</status> still broken', session_id: 'A' })
+  run(home, { prompt: 'run the tests', session_id: 'A' })
+  const records = await ledger(home)
+  assert.deepEqual(records.map(r => r.text), ['run the tests'],
+    'a background task\'s completion notice reached the ledger as if the user typed it')
+})
+
+test('an opened file is stripped, so a correction after it is still read as one', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'limbic-hook-'))
+  run(home, {
+    prompt: '<ide_opened_file>The user opened the file /a/b.js in the IDE.</ide_opened_file> no, wrong file',
+    session_id: 'A'
+  })
+  const [record] = await ledger(home)
+  assert.equal(record.text, 'no, wrong file', 'the IDE block stayed in the stored excerpt')
+  assert.equal(record.label, 'correction', 'the IDE block hid the leading "no" from the classifier')
+})
+
 test('a prediction for another session is left standing', async () => {
   const home = await mkdtemp(join(tmpdir(), 'limbic-hook-'))
   const dir = join(home, '.limbic')

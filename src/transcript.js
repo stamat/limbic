@@ -21,6 +21,16 @@ export function stripWrappers (text) {
   return text.replace(WRAPPER_BLOCKS, '').trim()
 }
 
+// The UserPromptSubmit hook gets no `origin`, so it cannot ask isHumanPrompt:
+// a background task's completion notice reaches it as a prompt nobody typed,
+// and 7 of 185 such notices were labelled corrective in the live ledger. This
+// is the hook's copy of the replay filter — null means plumbing, not a prompt.
+export function livePrompt (raw) {
+  const text = raw.trim()
+  if (text.startsWith('<task-notification>') || isCommandWrapper(text)) return null
+  return stripWrappers(text) || null
+}
+
 // Interruptions and tool denials are corrections nobody typed: Esc mid-turn
 // and a rejected tool call both say "not that" without a single user word.
 // They become behavioral events, never prompts — no text means nothing for

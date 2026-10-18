@@ -62,3 +62,10 @@ test('one drifted yes cannot snowball unrelated corrections into a blob', async 
   const { clusters } = await semanticClusters(abc, oracle, { minSize: 3 })
   assert.equal(clusters.length, 0, 'a chain of single links is not a cluster')
 })
+
+test('a contraction shared four ways is glue, not a lesson', async () => {
+  const same = [ev("it doesn't work"), ev("doesn't work..."), ev("still doesn't work for me")]
+  const oracle = { samePairs: async (pairs) => pairs.map(() => true) }
+  const { clusters } = await semanticClusters(same, oracle, { minSize: 3 })
+  assert.equal(clusters.length, 0, '"doesn\'t work" over unrelated defects proposed a rule on real history')
+})
