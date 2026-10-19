@@ -41,6 +41,20 @@ usage:
       keep, graduate, revise or check. --llm matches lessons by meaning, as
       stats does; without it, by shared words only.
 
+  limbic commits [--projects DIR]
+      Every commit message the agent wrote, checked against the Commits
+      section (one line, no Conventional Commits prefix, lowercase), split
+      by whether the session got the remind hook's reminder, was held out,
+      or neither. Reads the transcripts; no model.
+
+  limbic eval [--rule FILE] [--runs N] [--model M] [--max-calls N]
+      The offline test: for each accepted rule, the tasks that came right
+      before its corrections are put to \`claude -p\` with the rule and
+      without it, N times each (default 2), and Haiku judges whether the
+      mistake came back. No tools, no repository: it tests whether the rule
+      is understood and applied, not the live sessions. Spends plan budget,
+      capped by --max-calls (default 60, the agent and the judge each count).
+
   limbic graduate <file> [--claude-md FILE]
       Stop injecting a rule that now lives in your CLAUDE.md. Refuses until a
       line there states it: paste it first, limbic never edits the file.
@@ -194,9 +208,14 @@ if (cmd === 'replay') {
     console.error('no accepted rules — review proposals with `limbic rules` first')
     process.exit(1)
   }
+  const { pooled } = await import('../src/efficacy.js')
   const oracle = await makeOracle()
   const embedder = await makeEmbedder()
-  for (const e of await efficacy(await history(), rules, { oracle, embedder })) {
+  const results = await efficacy(await history(), rules, { oracle, embedder })
+  const all = pooled(results)
+  const share = (m, n) => n ? `${(100 * m / n).toFixed(1)}%` : '—'
+  console.log(`all rules pooled: missed in ${share(all.missed, all.given)} of ${all.given} session-rules given, ${share(all.heldMissed, all.held)} of ${all.held} held out — p ${all.p.toFixed(3)}${all.p < 0.05 ? ', the rules work' : ', no evidence yet'}\n`)
+  for (const e of results) {
     const w = s => `${s.per1000.toFixed(1)}/1000 (${s.hits} of ${s.prompts})`
     console.log(`${e.action.padEnd(9)} ${e.file}  since ${e.since}  ${e.verdict}\n    before ${w(e.before)}  after ${w(e.after)}  given ${e.given} sessions, missed in ${e.missed}  held out ${e.held}, missed in ${e.heldMissed}`)
     for (const m of e.misses.slice(0, 2)) console.log(`    ✗ ${m.replace(/\s+/g, ' ').slice(0, 100)}`)
@@ -206,6 +225,65 @@ if (cmd === 'replay') {
   console.log('check: fewer than 5 lessons before acceptance matched its evidence — too few to judge by date; read it, keep or reject')
   if (!oracle) console.log('(no --llm: lessons matched by shared words only — a paraphrase is missed)')
   oracleReport(oracle, embedder)
+} else if (cmd === 'commits') {
+  const { scanCommits, byReminder } = await import('../src/commits.js')
+  const { fisherLess } = await import('../src/efficacy.js')
+  const commits = await scanCommits(flag(args, '--projects', join(homedir(), '.claude', 'projects')))
+  const groups = byReminder(commits, await history())
+  const line = (name, cs) => {
+    const bad = cs.filter(c => c.violations.length).length
+    console.log(`${name.padEnd(30)} ${cs.length ? `${(100 * (cs.length - bad) / cs.length).toFixed(0)}% follow the Commits section` : '—'}  (${cs.length - bad} of ${cs.length})`)
+  }
+  line('reminded', groups.given)
+  line('held out (no reminder)', groups.held)
+  line('before remind, or not reached', groups.none)
+  const g = groups.given
+  const h = groups.held
+  const gBad = g.filter(c => c.violations.length).length
+  const hBad = h.filter(c => c.violations.length).length
+  if (g.length && h.length) {
+    const p = fisherLess(gBad, g.length - gBad, hBad, h.length - hBad)
+    console.log(`\nfewer violations with the reminder: p ${p.toFixed(3)}${p < 0.05 ? ' — the reminder works' : ' — no evidence yet'}`)
+  }
+  const unread = commits.filter(c => c.violations === null).length
+  if (unread) console.log(`${unread} commits with a message the command does not show (-F, an editor) — not counted`)
+  const recent = commits.filter(c => c.violations?.length).slice(-5)
+  if (recent.length) {
+    console.log('\nrecent violations:')
+    for (const c of recent) console.log(`  ✗ ${c.violations.join(', ')}: ${c.message.split('\n')[0].slice(0, 80)}`)
+  }
+} else if (cmd === 'eval') {
+  const { listRules } = await import('../src/rules.js')
+  const { cases, evaluate } = await import('../src/eval.js')
+  const { fisherLess } = await import('../src/efficacy.js')
+  const only = flag(args, '--rule', null)
+  const rules = (await listRules()).filter(r => r.meta.status === 'accepted' && (!only || r.file === only))
+  if (!rules.length) {
+    console.error(only ? `no accepted rule ${only}` : 'no accepted rules — review proposals with `limbic rules` first')
+    process.exit(1)
+  }
+  const records = await history()
+  let budget = Number(flag(args, '--max-calls', 60))
+  const total = { with: { yes: 0, no: 0 }, without: { yes: 0, no: 0 } }
+  for (const rule of rules) {
+    const found = cases(rule, records)
+    if (!found.length || budget < 2) {
+      console.log(`skip      ${rule.file}  ${found.length ? 'call budget spent' : 'no evidence matched a task in the ledger'}`)
+      continue
+    }
+    const r = await evaluate(rule, found, { runs: Number(flag(args, '--runs', 2)), model: flag(args, '--model', null), maxCalls: budget })
+    budget -= r.calls
+    const rate = t => (t.yes + t.no) ? `${t.yes} of ${t.yes + t.no}` : '—'
+    console.log(`${(r.p < 0.05 ? 'works' : 'unclear').padEnd(9)} ${rule.file}  ${r.cases} cases\n    mistake repeated: with the rule ${rate(r.tally.with)}, without ${rate(r.tally.without)}  (na ${r.tally.with.na + r.tally.without.na})  p ${r.p.toFixed(3)}`)
+    for (const side of ['with', 'without']) for (const k of ['yes', 'no']) total[side][k] += r.tally[side][k]
+  }
+  const w = total.with
+  const o = total.without
+  if ((w.yes + w.no) && (o.yes + o.no)) {
+    const p = fisherLess(w.yes, w.no, o.yes, o.no)
+    console.log(`\nall rules: mistake repeated with the rules ${w.yes} of ${w.yes + w.no}, without ${o.yes} of ${o.yes + o.no} — p ${p.toFixed(3)}${p < 0.05 ? ', the rules work offline' : ', no evidence yet'}`)
+  }
+  console.log(`calls left: ${budget}`)
 } else if (cmd === 'graduate') {
   const { listRules, setStatus } = await import('../src/rules.js')
   const { doctrineHolds } = await import('../src/efficacy.js')
@@ -351,7 +429,7 @@ if (cmd === 'replay') {
   if (args.includes('--remind')) {
     hooks.PreToolUse = [{
       matcher: 'Bash',
-      hooks: [{ type: 'command', if: 'Bash(git commit *)', command: `node "${jn(root, 'hooks', 'remind.js')}" Commits`, timeout: 5 }]
+      hooks: [{ type: 'command', if: 'Bash(git commit *)', command: `node "${jn(root, 'hooks', 'remind.js')}" Commits --commit`, timeout: 5 }]
     }]
   }
   console.log('add to ~/.claude/settings.json under "hooks":\n')

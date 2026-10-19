@@ -49,6 +49,8 @@ npx limbic stats       # repeated lessons per month (limbic works when it falls)
 npx limbic dream       # cluster corrections and missed steps into proposed rules (--llm to phrase via claude -p)
 npx limbic rules       # review proposals; accept/reject each by hand
 npx limbic efficacy    # did an accepted rule work? keep, graduate, revise or check
+npx limbic eval        # the offline test: each rule's old tasks, with and without it
+npx limbic commits     # commit messages against your Commits section, reminded or not
 npx limbic graduate    # a rule that worked moves into your CLAUDE.md; limbic stops injecting it
 npx limbic retrodict   # the thesis benchmark, honest either way (--online for per-event)
 npx limbic calibrate   # score the cascade against your hand labels (--sample first)

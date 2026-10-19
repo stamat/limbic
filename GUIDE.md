@@ -16,6 +16,8 @@ npx limbic dream --llm      # cluster corrections into proposed rules
 npx limbic rules            # read proposals; accept/reject each by hand
 npx limbic efficacy         # did an accepted rule work? keep, graduate, revise or check
 npx limbic graduate <file>  # after you paste a rule that worked into your CLAUDE.md
+npx limbic eval             # the offline test: each rule's old tasks, with and without it
+npx limbic commits          # commit messages against your Commits section, reminded or not
 npx limbic retrodict --llm --online --min 2   # the thesis benchmark
 npx limbic curate --llm     # propose accepted rules into your CLAUDE.md
 npx limbic install          # print the hooks block; paste it yourself
@@ -118,11 +120,31 @@ why-question. A verbatim resend after an error is neutral.
 
   | Action | When | Do |
   |---|---|---|
-  | `graduate` or `revise` by holdout | 20 sessions or more each side of the holdout: fewer misses with the rule than without it graduates, otherwise revise. This decides before any row below | as below |
+  | `graduate` by holdout | Fisher's exact test finds significantly fewer misses with the rule than without it (p < 0.05). This decides before any row below; without significance the holdout says nothing | as below |
   | `keep` | fewer than 1000 prompts after acceptance | nothing yet |
   | `graduate` | the rate after is lower than before | paste the rule into your CLAUDE.md, then `limbic graduate <file>` |
   | `revise` | the rate after is the same or higher, or 3 sessions that had the rule made the mistake anyway | edit the statement, or reject the rule |
   | `check` | fewer than 5 lessons before acceptance matched the evidence, so the rate after cannot be read against it | read the rule; keep it or reject it |
+  `efficacy` opens with all rules pooled — each session with each rule is one
+  unit. At about 1% of sessions per rule's mistake, a single rule needs
+  thousands of sessions for an answer; the pooled line gets there first.
+- **`eval [--rule FILE] [--runs N] [--model M] [--max-calls N]`** — the
+  offline test. Each accepted rule's evidence points to a correction; the
+  prompt right before it in the same session is the task. `claude -p` gets
+  each task with the rule and without it, `--runs` times (default 2), with
+  limbic's own hooks off, and Haiku judges whether the answer makes the
+  corrected mistake again: yes, no, or na. Fisher's test compares the two
+  sides, for each rule and for all rules together. The agent has no tools and
+  no repository, so this tests whether a rule is understood and applied, not
+  what a live session does. `--model` picks the agent (your default model
+  otherwise); `--max-calls` (default 60) caps the run, agent and judge each
+  counting.
+- **`commits [--projects DIR]`** — every commit message the agent wrote, from
+  the transcripts, checked against the Commits section: one line, no
+  Conventional Commits prefix, lowercase. Split into reminded, held out, and
+  neither. A commit is frequent and the check needs no judge, so this is the
+  fastest evidence for the remind hook. The checks are the author's doctrine;
+  another doctrine needs other checks in `src/commits.js`.
 - **`graduate <file> [--claude-md FILE]`** — sets an accepted rule to
   `graduated`, and `inject` stops sending it. It refuses until a line in your
   CLAUDE.md states the rule (lexical overlap, as above): limbic never edits
@@ -217,8 +239,11 @@ that blocks a prompt is worse than no memory tool:
   with the rule against misses without it is the only measure that the
   model, the doctrine and the work cannot bend.
 - **remind** (`PreToolUse`, opt-in via `--remind`): repeats one CLAUDE.md
-  section beside the tool call it governs — `remind.js Commits` with the hook
-  `if` `Bash(git commit *)`. Once per section per session. The section is read
+  section beside the tool call it governs — `remind.js Commits --commit` with
+  the hook `if` `Bash(git commit *)`. Once per section per session, and held
+  out of half the sessions. The `if` matches the words anywhere in the
+  command, a heredoc that only mentions `git commit` included; `--commit`
+  fires only on a segment that runs one. The section is read
   from `~/.claude/CLAUDE.md` each time, so the text stays in one place. A
   heading the file lacks prints nothing and says so in the debug log.
 - **predict** (`Stop`, opt-in via `--predict`): one Haiku call per turn,

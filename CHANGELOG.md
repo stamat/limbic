@@ -11,6 +11,8 @@ All notable changes to limbic are documented here. The format follows
 - **`directive` and `missed_step` labels.** "Remember in ~/.claude that …" becomes a proposed rule from one prompt, and "did we update the docs?" joins the corrections that dream clusters.
 - **`limbic efficacy`** gives each accepted rule its rate of similar lessons per 1000 prompts, before and after the day you accepted it.
 - **`limbic stats` shows each month's share of clean accepts** — accepts with no correction since the one before. It is the overall number for whether the agent improves.
+- **`limbic eval`, the offline test.** Each rule's old tasks go to `claude -p` with and without the rule, and Haiku judges whether the mistake comes back — evidence in days, where the live holdout needs months.
+- **`limbic commits`** checks every commit message against the Commits section, split by whether the remind hook reminded the session. The first run: 23 of 23 commits before remind already followed it.
 - **`efficacy --llm` and `stats --llm` match lessons by meaning.** Without it they match shared words only and miss a paraphrase, so every count runs low.
 - **A holdout for every rule.** Inject keeps each rule from one session in five, and `efficacy` lets misses with and without the rule decide once each side has 20 sessions.
 - **`limbic stats` opens with the repeat rate**: each month's share of lessons that repeat one from the 60 days before, limbic's own goal as a number.
@@ -130,6 +132,8 @@ All notable changes to limbic are documented here. The format follows
 ### Fixed
 
 - **`dream` reads the replay and live ledgers both.** A rebuild alone lost every session whose transcript Claude Code had deleted, and the hook and replay named one project two ways.
+- **The holdout decides only on a significant difference** (Fisher's exact test). It read 0 misses of 20 against 0 of 20 as "revise".
+- **remind fires only on a commit that runs** with `--commit`, and holds out half the sessions. A heredoc that only mentioned `git commit` fired it.
 - **`replay` keeps the sessions whose transcripts are gone.** A full reset erased two months of history the first time it ran on a pruned disk.
 - **Inject sends at most 12 rules, the most evidence first.** ReasoningBank scored 49.7% with one retrieved memory against 44.4% with four.
 - **Pasted content is stripped before classification**, so a pasted "remember: …" cannot become a directive. MINJA put records into agent memory through queries alone.

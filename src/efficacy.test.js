@@ -5,7 +5,7 @@
 // design, the same AUTO threshold that pairs two events without an oracle.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { efficacy, action, doctrineHolds, MIN_AFTER, MIN_BEFORE, SETTLE, HOLDOUT_MIN } from './efficacy.js'
+import { efficacy, action, doctrineHolds, fisherLess, pooled, MIN_AFTER, MIN_BEFORE, SETTLE } from './efficacy.js'
 
 const rule = {
   file: 'r.md',
@@ -77,15 +77,26 @@ test('a session that had the rule and made the mistake anyway is a miss, and thr
   assert.equal(third.action, 'revise', 'three misses in sessions that had the rule did not count against it')
 })
 
-test('with enough sessions each side, the holdout decides over every other signal', async () => {
+test('fisher matches the textbook value, and zero against zero is no evidence at all', () => {
+  // Lady tasting tea: 3 of 4 right against 1 of 4, one-sided p = 17/70.
+  assert.ok(Math.abs(fisherLess(1, 3, 3, 1) - 17 / 70) < 1e-9, 'the exact test is wrong')
+  assert.ok(fisherLess(0, 20, 0, 20) > 1 - 1e-9, 'zero misses each side read as a difference')
+})
+
+test('the holdout decides only on a significant difference, else it says nothing', () => {
   const before = window(2000, 10)
   const after = window(SETTLE, 9)
-  const base = { before, after, given: HOLDOUT_MIN, held: HOLDOUT_MIN }
-  assert.equal(action({ ...base, missed: 3, heldMissed: 8 }), 'graduate',
-    'three misses with the rule against eight without it is a rule that works')
-  assert.equal(action({ ...base, missed: 4, heldMissed: 4 }), 'revise', 'the same misses with and without it is no effect')
-  assert.equal(action({ ...base, held: HOLDOUT_MIN - 1, missed: 0, heldMissed: 9 }), action({ before, after, missed: 0 }),
-    'a handful of held-out sessions decided the rule')
+  assert.equal(action({ before, after, given: 400, missed: 2, held: 100, heldMissed: 8 }), 'graduate',
+    '2 misses in 400 with the rule against 8 in 100 without it is a rule that works')
+  assert.equal(action({ before, after, given: 20, missed: 0, held: 20, heldMissed: 0 }), action({ before, after, missed: 0 }),
+    'zero against zero decided the rule')
+})
+
+test('pooling every rule answers the question no single rule can', () => {
+  const rule = (missed, heldMissed) => ({ given: 100, missed, held: 25, heldMissed })
+  const one = rule(0, 1)
+  assert.ok(pooled([one]).p > 0.05, 'one rule alone is not significant')
+  assert.ok(pooled(Array.from({ length: 8 }, () => one)).p < 0.05, 'eight rules pooled should be')
 })
 
 test('a held-out session counts its misses on the held side, never on the given side', async () => {

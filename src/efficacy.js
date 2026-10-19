@@ -33,16 +33,38 @@ export const MIN_BEFORE = 5
 // turn against, ACE counts a bullet harmful each time it fails.
 export const MISS_LIMIT = 3
 
-// Sessions each side of the holdout needs before it decides. Below it the
-// rates are a handful of sessions; past it, with and without the rule is the
-// only comparison here that the model, the doctrine and the work cannot bend,
-// so it outranks every other signal.
-export const HOLDOUT_MIN = 20
+// The holdout decides only on a significant difference: with and without the
+// rule is the one comparison the model, the doctrine and the work cannot
+// bend, so when it speaks it outranks every other signal — and when it does
+// not, it says nothing. A plain rate comparison read 0 misses of 20 against 0
+// of 20 as "revise": a rule's mistake comes up in about 1% of sessions, so
+// small samples are almost always zero against zero.
+export const SIGNIFICANCE = 0.05
+
+// Fisher's exact test, one-sided: the chance of `a` or fewer misses among the
+// first group's `a + b` sessions if the rule made no difference, with all the
+// table's totals fixed. Exact, so it holds at the zero-heavy counts a 1%
+// mistake gives, where a normal approximation does not.
+export function fisherLess (a, b, c, d) {
+  const n = a + b + c + d
+  const logf = [0]
+  for (let i = 1; i <= n; i++) logf[i] = logf[i - 1] + Math.log(i)
+  const row1 = a + b
+  const row2 = c + d
+  const col1 = a + c
+  const p = x => Math.exp(logf[row1] + logf[row2] + logf[col1] + logf[n - col1] -
+    logf[n] - logf[x] - logf[row1 - x] - logf[col1 - x] - logf[row2 - col1 + x])
+  let sum = 0
+  for (let x = Math.max(0, col1 - row2); x <= a; x++) sum += p(x)
+  return Math.min(1, sum)
+}
+
+export function holdoutP (e) {
+  return fisherLess(e.missed, e.given - e.missed, e.heldMissed, e.held - e.heldMissed)
+}
 
 export function action (e) {
-  if (e.given >= HOLDOUT_MIN && e.held >= HOLDOUT_MIN) {
-    return e.missed / e.given < e.heldMissed / e.held ? 'graduate' : 'revise'
-  }
+  if (e.given && e.held && holdoutP(e) < SIGNIFICANCE) return 'graduate'
   if (e.missed >= MISS_LIMIT) return 'revise'
   if (e.after.prompts < SETTLE) return 'keep'
   if (e.before.hits < MIN_BEFORE) return 'check'
@@ -125,4 +147,14 @@ export async function efficacy (records, rules, { oracle = null, embedder = null
 export function doctrineHolds (statement, lines) {
   const s = tokens(statement)
   return lines.some(l => jaccard(s, tokens(l)) >= AUTO)
+}
+
+// All rules as one experiment: each (session, rule) is a unit, given or held.
+// At about 1% of sessions per rule's mistake, no single rule reaches an answer
+// in months; the pooled question — do limbic's rules, together, cut their
+// mistakes? — gets there first.
+export function pooled (results) {
+  const sum = k => results.reduce((n, e) => n + e[k], 0)
+  const e = { given: sum('given'), missed: sum('missed'), held: sum('held'), heldMissed: sum('heldMissed') }
+  return { ...e, p: e.given && e.held ? holdoutP(e) : 1 }
 }
