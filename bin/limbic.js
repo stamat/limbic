@@ -274,8 +274,13 @@ if (cmd === 'replay') {
     const r = await evaluate(rule, found, { runs: Number(flag(args, '--runs', 2)), model: flag(args, '--model', null), maxCalls: budget })
     budget -= r.calls
     const rate = t => (t.yes + t.no) ? `${t.yes} of ${t.yes + t.no}` : '—'
-    console.log(`${(r.p < 0.05 ? 'works' : 'unclear').padEnd(9)} ${rule.file}  ${r.cases} cases\n    mistake repeated: with the rule ${rate(r.tally.with)}, without ${rate(r.tally.without)}  (na ${r.tally.with.na + r.tally.without.na})  p ${r.p.toFixed(3)}`)
+    const errors = r.tally.with.error + r.tally.without.error
+    console.log(`${(r.p < 0.05 ? 'works' : 'unclear').padEnd(9)} ${rule.file}  ${r.cases} cases\n    mistake repeated: with the rule ${rate(r.tally.with)}, without ${rate(r.tally.without)}  (na ${r.tally.with.na + r.tally.without.na}${errors ? `, failed calls ${errors}` : ''})  p ${r.p.toFixed(3)}`)
     for (const side of ['with', 'without']) for (const k of ['yes', 'no']) total[side][k] += r.tally[side][k]
+    if (r.aborted) {
+      console.log(`\nstopped: three calls in a row failed — ${r.firstError}`)
+      break
+    }
   }
   const w = total.with
   const o = total.without

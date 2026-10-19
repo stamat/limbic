@@ -132,6 +132,7 @@ All notable changes to limbic are documented here. The format follows
 ### Fixed
 
 - **`dream` reads the replay and live ledgers both.** A rebuild alone lost every session whose transcript Claude Code had deleted, and the hook and replay named one project two ways.
+- **`eval` counts a failed call as an error, never as "na", and stops after three in a row.** The first full run read 120 failed calls as 120 answers nobody could judge, and said nothing.
 - **The holdout decides only on a significant difference** (Fisher's exact test). It read 0 misses of 20 against 0 of 20 as "revise".
 - **remind fires only on a commit that runs** with `--commit`, and holds out half the sessions. A heredoc that only mentioned `git commit` fired it.
 - **`replay` keeps the sessions whose transcripts are gone.** A full reset erased two months of history the first time it ran on a pruned disk.

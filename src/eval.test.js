@@ -28,13 +28,21 @@ test('the rule reaches only the answers it is tested on, and the tally reads the
   const judge = async prompt => prompt.includes('shadow and gradient') ? 'Yes.' : 'no'
   const result = await evaluate(rule, [{ task: 't', mistake: 'm', project: '-p' }], { runs: 3, run, judge })
   assert.deepEqual(seen, [true, false, true, false, true, false], 'the rule leaked into the answers without it')
-  assert.deepEqual(result.tally, { with: { yes: 0, no: 3, na: 0 }, without: { yes: 3, no: 0, na: 0 } })
+  assert.deepEqual(result.tally, { with: { yes: 0, no: 3, na: 0, error: 0 }, without: { yes: 3, no: 0, na: 0, error: 0 } })
   assert.ok(result.p < 0.06, 'three clean answers against three violations should read as an effect')
 })
 
-test('the call cap holds, and a failed call is no answer, never a pass', async () => {
-  const run = async () => { throw new Error('offline') }
-  const result = await evaluate(rule, [{ task: 't', mistake: 'm' }, { task: 't2', mistake: 'm2' }], { runs: 5, maxCalls: 6, run, judge: async () => 'no' })
+test('the call cap holds', async () => {
+  const result = await evaluate(rule, [{ task: 't', mistake: 'm' }, { task: 't2', mistake: 'm2' }], { runs: 5, maxCalls: 6, run: async () => 'a', judge: async () => 'no' })
   assert.equal(result.calls, 6, 'more calls than the cap')
-  assert.equal(result.tally.with.no + result.tally.without.no, 0, 'a failed call was counted as a clean answer')
+})
+
+test('a failed call is an error, never na or a pass, and three in a row stop the run', async () => {
+  const run = async () => { throw new Error('usage limit reached') }
+  const result = await evaluate(rule, [{ task: 't', mistake: 'm' }, { task: 't2', mistake: 'm2' }], { runs: 5, maxCalls: 60, run, judge: async () => 'no' })
+  const t = result.tally
+  assert.equal(t.with.na + t.without.na + t.with.no + t.without.no, 0, 'a failed call was read as an answer')
+  assert.equal(t.with.error + t.without.error, 3, 'the run kept spending calls on failures')
+  assert.ok(result.aborted)
+  assert.match(result.firstError, /usage limit/, 'the cause of the failure was lost')
 })

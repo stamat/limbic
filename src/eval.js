@@ -17,6 +17,8 @@ import { BEHAVIORAL } from './surprise.js'
 
 const exec = promisify(execFile)
 
+export const ABORT_AFTER = 3
+
 // The real runner: `claude -p`, with LIMBIC_ORACLE set so the spawned
 // session's own hooks stay off — otherwise inject would put every accepted
 // rule into the "without" answers, and classify would ledger the prompt.
@@ -71,24 +73,38 @@ function judgePrompt (c, rule, answer) {
 
 // runs × cases × {with, without}, each answer judged. Calls are capped: the
 // agent and the judge each count, and a run that hits the cap reports what it
-// finished. `run` and `judge` are injectable so the arithmetic is testable
+// finished. A failed call is an error, never "na": the first full run read
+// 120 timeouts or refusals as 120 answers a judge could not tell, and said
+// nothing. ABORT_AFTER errors in a row stop the run with the first message. `run` and `judge` are injectable so the arithmetic is testable
 // without a model.
 export async function evaluate (rule, cases_, { runs = 2, model = null, maxCalls = 60, run = claude, judge = p => claude(p, 'haiku') } = {}) {
   const rulesText = statement(rule)
-  const tally = { with: { yes: 0, no: 0, na: 0 }, without: { yes: 0, no: 0, na: 0 } }
+  const tally = { with: { yes: 0, no: 0, na: 0, error: 0 }, without: { yes: 0, no: 0, na: 0, error: 0 } }
   let calls = 0
+  let streak = 0
+  let firstError = null
+  let aborted = false
   outer:
   for (const c of cases_) {
     for (let n = 0; n < runs; n++) {
       for (const side of ['with', 'without']) {
         if (calls + 2 > maxCalls) break outer
         calls += 2
-        let verdict = 'na'
+        let verdict
         try {
           const answer = await run(agentPrompt(c, side === 'with' ? rulesText : null), model)
           const word = (await judge(judgePrompt(c, rulesText, answer))).toLowerCase().match(/\b(yes|no|na)\b/)
           verdict = word ? word[1] : 'na'
-        } catch {}
+          streak = 0
+        } catch (err) {
+          verdict = 'error'
+          firstError ??= String(err.killed ? `timed out after ${err.signal ?? 'kill'}` : (err.stderr || err.message || err)).trim().slice(0, 200)
+          if (++streak >= ABORT_AFTER) {
+            tally[side].error++
+            aborted = true
+            break outer
+          }
+        }
         tally[side][verdict]++
       }
     }
@@ -96,5 +112,5 @@ export async function evaluate (rule, cases_, { runs = 2, model = null, maxCalls
   const w = tally.with
   const o = tally.without
   const p = (w.yes + w.no) && (o.yes + o.no) ? fisherLess(w.yes, w.no, o.yes, o.no) : 1
-  return { file: rule.file, cases: cases_.length, calls, tally, p }
+  return { file: rule.file, cases: cases_.length, calls, tally, p, firstError, aborted }
 }
