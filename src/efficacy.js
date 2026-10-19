@@ -1,11 +1,12 @@
 import { tokens, jaccard, AUTO } from './cluster.js'
+import { similar } from './semantic.js'
 import { LESSON, BEHAVIORAL } from './surprise.js'
 
 // Did a rule work? For each accepted rule: how often a lesson like its
 // evidence came up before the day it was accepted and after, per 1000
-// prompts. Like is lexical — AUTO, the overlap that pairs two events with no
-// oracle — so a rule only sees the mistake in words close to the ones that
-// taught it. A falling rate is evidence, never proof: the user may only have
+// prompts. Like is `similar()`: lexical alone without an oracle, so a rule
+// only sees the mistake in words close to the ones that taught it; with one,
+// a paraphrase counts too. A falling rate is evidence, never proof: the user may only have
 // stopped working where the mistake lives.
 
 // Fewer prompts than this after acceptance and the after-rate is noise: one
@@ -20,9 +21,12 @@ export const SETTLE = 1000
 // A rule's life after accept — the step that keeps the injected list short.
 // graduate: it worked; its home is the doctrine, not every session start.
 // revise:   the mistake came back as often; reword it or reject it.
-// check:    no lesson before acceptance looked like its evidence, so its
-//           effect cannot be read; the evidence was not corrective or is
-//           worded unlike any later lesson.
+// check:    fewer than MIN_BEFORE lessons before acceptance looked like its
+//           evidence, so a rate after cannot be read against it — one lesson
+//           before and two after graduated a rule on noise in the first
+//           semantic run.
+
+export const MIN_BEFORE = 5
 // keep:     too little history after acceptance to judge.
 // A rule that sessions were given and that still missed MISS_LIMIT times is
 // revised at once, whatever the history: ExpeL drops an insight its votes
@@ -41,7 +45,7 @@ export function action (e) {
   }
   if (e.missed >= MISS_LIMIT) return 'revise'
   if (e.after.prompts < SETTLE) return 'keep'
-  if (e.before.hits === 0) return 'check'
+  if (e.before.hits < MIN_BEFORE) return 'check'
   return e.after.per1000 < e.before.per1000 ? 'graduate' : 'revise'
 }
 
@@ -67,22 +71,27 @@ function deliveries (records, field) {
   return out
 }
 
-export function efficacy (records, rules) {
+export async function efficacy (records, rules, { oracle = null, embedder = null } = {}) {
   const prompts = records.filter(r => r.ts && !BEHAVIORAL.has(r.label))
-  const lessons = prompts
-    .filter(r => LESSON.has(r.label) || r.label === 'directive')
-    .map(r => ({ r, toks: tokens(r.text ?? '') }))
+  const lessons = prompts.filter(r => (LESSON.has(r.label) || r.label === 'directive') && r.text)
   const given = deliveries(records, 'given')
   const heldOut = deliveries(records, 'held')
-  return rules.map(rule => {
+  // Every lesson against every evidence line of every rule, judged in one
+  // batch: like[k] is the set of lessons that match rule k.
+  const evidence = rules.map(rule => evidenceTexts(rule.body))
+  const pairs = []
+  evidence.forEach((lines, k) => lessons.forEach((r, i) => lines.forEach(e => pairs.push({ k, i, a: r.text, b: e }))))
+  const verdicts = await similar(pairs, { oracle, embedder })
+  const like = rules.map(() => new Set())
+  pairs.forEach((p, n) => { if (verdicts[n]) like[p.k].add(p.i) })
+  return rules.map((rule, k) => {
     // ISO timestamps compare as strings, and a bare date sorts before every
     // timestamp of that day: the day of acceptance counts as after.
     const since = rule.meta.accepted ?? rule.meta.date
-    const evidence = evidenceTexts(rule.body).map(tokens)
+    const matches = lessons.filter((_, i) => like[k].has(i))
     const window = after => {
       const n = prompts.filter(r => (r.ts >= since) === after).length
-      const hits = lessons.filter(({ r, toks }) =>
-        (r.ts >= since) === after && evidence.some(e => jaccard(toks, e) >= AUTO)).length
+      const hits = matches.filter(r => (r.ts >= since) === after).length
       return { prompts: n, hits, per1000: n ? (1000 * hits) / n : 0 }
     }
     const before = window(false)
@@ -92,9 +101,8 @@ export function efficacy (records, rules) {
     const missesIn = sessions => {
       const out = []
       for (const [sessionId, from] of sessions) {
-        const hit = lessons.find(({ r, toks }) => r.sessionId === sessionId && r.ts >= from &&
-          evidence.some(e => jaccard(toks, e) >= AUTO))
-        if (hit) out.push(hit.r.text)
+        const hit = matches.find(r => r.sessionId === sessionId && r.ts >= from)
+        if (hit) out.push(hit.text)
       }
       return out
     }

@@ -123,3 +123,32 @@ export async function semanticClusters (events, oracle, { minSize = 3, embedder 
 
   return { clusters, asked: ask.length, confirmed }
 }
+
+// Is each pair the same lesson? The measuring commands' matcher — efficacy's
+// misses and the stats repeat rate — on the rule clustering uses: lexical
+// overlap at AUTO answers yes alone; a pair over the lexical or embedding
+// floor goes to the oracle, all of them in one cached batch; the rest is no.
+// Without an oracle it is AUTO alone, the lexical floor the commands had
+// before. Lexical alone undercounts — "the sidebar overflows" and "the menu
+// paints past the edge" share no words — the same on both sides of any
+// comparison, so a comparison stays fair while every count runs low.
+export async function similar (pairs, { oracle = null, embedder = null } = {}) {
+  const toks = new Map()
+  const tok = t => { if (!toks.has(t)) toks.set(t, tokens(t)); return toks.get(t) }
+  const out = pairs.map(({ a, b }) => jaccard(tok(a), tok(b)) >= AUTO)
+  if (!oracle) return out
+  const texts = [...new Set(pairs.flatMap(({ a, b }) => [a, b]))]
+  const vecs = new Map()
+  if (embedder) (await embedder.embed(texts)).forEach((v, i) => { if (v) vecs.set(texts[i], v) })
+  const cos = (a, b) => vecs.has(a) && vecs.has(b) ? cosine(vecs.get(a), vecs.get(b)) : 0
+  const ask = []
+  pairs.forEach(({ a, b }, i) => {
+    if (out[i]) return
+    if (jaccard(tok(a), tok(b)) >= FLOOR || cos(a, b) >= EMB_FLOOR) ask.push(i)
+  })
+  if (ask.length) {
+    const verdicts = await oracle.samePairs(ask.map(i => pairs[i]))
+    ask.forEach((i, n) => { if (verdicts[n] === true) out[i] = true })
+  }
+  return out
+}

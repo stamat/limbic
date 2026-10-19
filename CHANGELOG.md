@@ -11,6 +11,7 @@ All notable changes to limbic are documented here. The format follows
 - **`directive` and `missed_step` labels.** "Remember in ~/.claude that …" becomes a proposed rule from one prompt, and "did we update the docs?" joins the corrections that dream clusters.
 - **`limbic efficacy`** gives each accepted rule its rate of similar lessons per 1000 prompts, before and after the day you accepted it.
 - **`limbic stats` shows each month's share of clean accepts** — accepts with no correction since the one before. It is the overall number for whether the agent improves.
+- **`efficacy --llm` and `stats --llm` match lessons by meaning.** Without it they match shared words only and miss a paraphrase, so every count runs low.
 - **A holdout for every rule.** Inject keeps each rule from one session in five, and `efficacy` lets misses with and without the rule decide once each side has 20 sessions.
 - **`limbic stats` opens with the repeat rate**: each month's share of lessons that repeat one from the 60 days before, limbic's own goal as a number.
 - **The `injected` record carries the model and a hash of CLAUDE.md**, so a change in either is not read as a rule's effect.

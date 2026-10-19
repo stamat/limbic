@@ -12,10 +12,12 @@ usage:
       Rebuild the ledger from Claude Code session history.
       Defaults: --projects ~/.claude/projects, --ledger ~/.limbic/ledger.jsonl
 
-  limbic stats [--ledger FILE]
+  limbic stats [--ledger FILE] [--llm]
       Correction rates, surprise baseline, per-session sparklines, and each
       month's share of accepts with no correction since the last accept.
       Reads the replay and live ledgers both unless --ledger names one.
+      --llm matches repeats by meaning (embeddings nominate, the oracle
+      confirms, cached); without it, by shared words only.
 
   limbic dream [--ledger FILE] [--llm] [--min N] [--claude-md FILE]
       Cluster corrections and missed steps into proposed rules in
@@ -33,10 +35,11 @@ usage:
   limbic accept <file> | reject <file>
       Promote or suppress a proposed rule. Rejected clusters stay suppressed.
 
-  limbic efficacy [--ledger FILE]
+  limbic efficacy [--ledger FILE] [--llm]
       For each accepted rule: lessons like its evidence per 1000 prompts,
       before the day it was accepted and after, and what to do with it —
-      keep, graduate, revise or check. Lexical match only.
+      keep, graduate, revise or check. --llm matches lessons by meaning, as
+      stats does; without it, by shared words only.
 
   limbic graduate <file> [--claude-md FILE]
       Stop injecting a rule that now lives in your CLAUDE.md. Refuses until a
@@ -138,7 +141,14 @@ if (cmd === 'replay') {
     console.error('ledger is empty — run `limbic replay` first')
     process.exit(1)
   }
-  console.log(render(aggregate(records)))
+  const { repeats } = await import('../src/stats.js')
+  const oracle = await makeOracle()
+  const embedder = await makeEmbedder()
+  const agg = aggregate(records)
+  agg.repeats = await repeats(records, { oracle, embedder })
+  console.log(render(agg))
+  if (!oracle) console.log('\n(no --llm: repeats matched by shared words only — a paraphrase is missed)')
+  oracleReport(oracle, embedder)
 } else if (cmd === 'dream') {
   const { dream } = await import('../src/dream.js')
   const oracle = await makeOracle()
@@ -184,14 +194,18 @@ if (cmd === 'replay') {
     console.error('no accepted rules — review proposals with `limbic rules` first')
     process.exit(1)
   }
-  for (const e of efficacy(await history(), rules)) {
+  const oracle = await makeOracle()
+  const embedder = await makeEmbedder()
+  for (const e of await efficacy(await history(), rules, { oracle, embedder })) {
     const w = s => `${s.per1000.toFixed(1)}/1000 (${s.hits} of ${s.prompts})`
     console.log(`${e.action.padEnd(9)} ${e.file}  since ${e.since}  ${e.verdict}\n    before ${w(e.before)}  after ${w(e.after)}  given ${e.given} sessions, missed in ${e.missed}  held out ${e.held}, missed in ${e.heldMissed}`)
     for (const m of e.misses.slice(0, 2)) console.log(`    ✗ ${m.replace(/\s+/g, ' ').slice(0, 100)}`)
   }
   console.log('\ngraduate: paste the rule into your CLAUDE.md, then `limbic graduate <file>`')
   console.log('revise: edit the statement, or `limbic reject <file>` — the ✗ lines are sessions that had the rule and missed it')
-  console.log('check: no corrective lesson before acceptance matched its evidence — read it, keep or reject')
+  console.log('check: fewer than 5 lessons before acceptance matched its evidence — too few to judge by date; read it, keep or reject')
+  if (!oracle) console.log('(no --llm: lessons matched by shared words only — a paraphrase is missed)')
+  oracleReport(oracle, embedder)
 } else if (cmd === 'graduate') {
   const { listRules, setStatus } = await import('../src/rules.js')
   const { doctrineHolds } = await import('../src/efficacy.js')

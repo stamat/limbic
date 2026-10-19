@@ -80,9 +80,12 @@ why-question. A verbatim resend after an error is neutral.
   regex only, which finds fewer corrections than the oracle, so months
   labelled two ways cannot be compared. Set `cleanupPeriodDays` in
   `settings.json` (365, for example) so the transcripts are still there.
-- **`stats [--ledger FILE]`** — first, for each month, the share of lessons
-  that repeat a lesson from the 60 days before: limbic works when it falls.
-  The window is fixed, because an open one grows with history alone. Then
+- **`stats [--ledger FILE] [--llm]`** — first, for each month, the share of
+  lessons that repeat a lesson from the 60 days before: limbic works when it
+  falls. The window is fixed, because an open one grows with history alone.
+  Without `--llm` a repeat must share words with the earlier lesson, so a
+  paraphrase is missed and the rate runs low. With `--llm` the pairs over the
+  lexical or embedding floor go to the oracle, as `dream` does it, cached. Then
   correction rates against your own baseline,
   per-session sparklines, behavioral counts, top cues, and for each month the
   share of accepts with no correction since the accept before. That share is
@@ -101,10 +104,11 @@ why-question. A verbatim resend after an error is neutral.
 - **`rules [--all]`** / **`accept <file>`** / **`reject <file>`** — the
   propose gate. A rejected cluster never re-proposes. `accept` writes the
   date into the rule as `accepted:`.
-- **`efficacy [--ledger FILE]`** — for each accepted rule, the lessons like
-  its evidence per 1000 prompts, before the `accepted:` date and after. Like
-  means lexical overlap at the same threshold that pairs two events without
-  an oracle. Fewer than 200 prompts after acceptance reads `too early`. A
+- **`efficacy [--ledger FILE] [--llm]`** — for each accepted rule, the
+  lessons like its evidence per 1000 prompts, before the `accepted:` date and
+  after. Without `--llm`, like means lexical overlap at the threshold that
+  pairs two events with no oracle. With `--llm`, a paraphrase counts too: the
+  same matcher as `stats --llm`. Fewer than 200 prompts after acceptance reads `too early`. A
   lower rate is evidence, not proof: you may only have stopped working where
   the mistake lives. Each rule also shows `given` (sessions that got it) and
   `missed` (of those, sessions with a lesson like its evidence), with up to
@@ -118,7 +122,7 @@ why-question. A verbatim resend after an error is neutral.
   | `keep` | fewer than 1000 prompts after acceptance | nothing yet |
   | `graduate` | the rate after is lower than before | paste the rule into your CLAUDE.md, then `limbic graduate <file>` |
   | `revise` | the rate after is the same or higher, or 3 sessions that had the rule made the mistake anyway | edit the statement, or reject the rule |
-  | `check` | no corrective lesson before acceptance matched the evidence, so the effect cannot be read | read the rule; keep it or reject it |
+  | `check` | fewer than 5 lessons before acceptance matched the evidence, so the rate after cannot be read against it | read the rule; keep it or reject it |
 - **`graduate <file> [--claude-md FILE]`** — sets an accepted rule to
   `graduated`, and `inject` stops sending it. It refuses until a line in your
   CLAUDE.md states the rule (lexical overlap, as above): limbic never edits
