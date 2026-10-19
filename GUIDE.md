@@ -9,18 +9,22 @@ operations manual.
 
 ## Quickstart
 
+limbic is not on npm, and the npm package named `limbic` is a different project. Run
+it from a clone: `npm link` in the clone puts `limbic` on your path. The README's Setup
+section has every step.
+
 ```sh
-npx limbic replay --llm     # rebuild the ledger from your Claude Code history
-npx limbic stats            # what the ledger says about you
-npx limbic dream --llm      # cluster corrections into proposed rules
-npx limbic rules            # read proposals; accept/reject each by hand
-npx limbic efficacy         # did an accepted rule work? keep, graduate, revise or check
-npx limbic graduate <file>  # after you paste a rule that worked into your CLAUDE.md
-npx limbic eval             # the offline test: each rule's old tasks, with and without it
-npx limbic commits          # commit messages against your Commits section, reminded or not
-npx limbic retrodict --llm --online --min 2   # the thesis benchmark
-npx limbic curate --llm     # propose accepted rules into your CLAUDE.md
-npx limbic install          # print the hooks block; paste it yourself
+limbic replay --llm     # rebuild the ledger from your Claude Code history
+limbic stats            # what the ledger says about you
+limbic dream --llm      # cluster corrections into proposed rules
+limbic rules            # read proposals; accept/reject each by hand
+limbic efficacy         # did an accepted rule work? keep, graduate, revise or check
+limbic graduate <file>  # after you paste a rule that worked into your CLAUDE.md
+limbic eval             # the offline test: each rule's old tasks, with and without it
+limbic commits          # commit messages against your Commits section, reminded or not
+limbic retrodict --llm --online --min 2   # the thesis benchmark
+limbic curate --llm     # propose accepted rules into your CLAUDE.md
+limbic install          # print the hooks block; paste it yourself
 ```
 
 Everything runs locally. Only `--llm` spends anything, and it is capped and

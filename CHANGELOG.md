@@ -8,6 +8,7 @@ All notable changes to limbic are documented here. The format follows
 
 ### Added
 
+- **The README explains how limbic works, how to set it up, and how to measure whether it works**, with the current numbers.
 - **`directive` and `missed_step` labels.** "Remember in ~/.claude that …" becomes a proposed rule from one prompt, and "did we update the docs?" joins the corrections that dream clusters.
 - **`limbic efficacy`** gives each accepted rule its rate of similar lessons per 1000 prompts, before and after the day you accepted it.
 - **`limbic stats` shows each month's share of clean accepts** — accepts with no correction since the one before. It is the overall number for whether the agent improves.
@@ -132,6 +133,7 @@ All notable changes to limbic are documented here. The format follows
 ### Fixed
 
 - **`dream` reads the replay and live ledgers both.** A rebuild alone lost every session whose transcript Claude Code had deleted, and the hook and replay named one project two ways.
+- **The README and the guide no longer say `npx limbic`.** The npm package of that name is a different project, so npx would run someone else's code. Setup is from a clone with `npm link`.
 - **`eval` counts a failed call as an error, never as "na", and stops after three in a row.** The first full run read 120 failed calls as 120 answers nobody could judge, and said nothing.
 - **The holdout decides only on a significant difference** (Fisher's exact test). It read 0 misses of 20 against 0 of 20 as "revise".
 - **remind fires only on a commit that runs** with `--commit`, and holds out half the sessions. A heredoc that only mentioned `git commit` fired it.
